@@ -101,13 +101,30 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 .menu{position:absolute;z-index:9;background:var(--chrome);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:180px}
 .menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:15px}
 .menu button:hover,.menu button[aria-pressed="true"]{background:var(--chrome-2)}
-@media (max-width:560px){.tool{width:44px;height:44px}.brand span{display:none}.size input{width:90px}}
+.logo{background:#fff;border-radius:7px;padding:2px;height:32px;width:auto}
+.lessbtn{display:flex;align-items:center;gap:6px;height:44px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);padding:0 14px;font-family:var(--f-display);font-weight:600;font-size:17px;cursor:pointer}
+.lessbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.lesson{position:absolute;z-index:8;top:12px;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;width:min(480px,calc(100% - 24px));background:var(--chrome);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:text;user-select:text}
+.lesson header{display:flex;align-items:center;gap:8px;padding:12px 12px 8px 16px}
+.lesson header h2{margin:0;font-family:var(--f-display);font-size:20px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lesson .subs{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}
+.lesson .body{overflow:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.unit{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--stage);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:16px;line-height:1.4}
+.unit:hover{border-color:var(--accent)}
+.para{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--stage)}
+.para p{margin:0 0 8px;font-size:16px;line-height:1.6;white-space:pre-line}
+.para .acts{display:flex;gap:6px;flex-wrap:wrap}
+.para .acts button{height:36px;border-radius:9px;border:1px solid var(--line);background:var(--chrome);padding:0 10px;cursor:pointer;font-size:14px}
+.para .acts button:first-child{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.lesson .note{font-size:13px;color:var(--muted);margin:0}
+@media (max-width:560px){.tool{width:44px;height:44px}.brand span{display:none}.lessbtn{font-size:15px;padding:0 10px}.size input{width:90px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 
 <div class="app">
   <header class="top">
-    <div class="brand"><i>അ</i><span>വിദ്യാർത്ഥി ബോർഡ്</span></div>
+    <div class="brand"><img src="logo.png" alt="" width="30" height="32" class="logo"><span>AMUP AI ബോർഡ്</span></div>
+    <button class="lessbtn" id="lessons" type="button"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/></svg>പാഠങ്ങൾ</button>
     <div class="grp">
       <button class="ib" id="undo" title="തിരികെ (Undo)" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
       <button class="ib" id="redo" title="വീണ്ടും (Redo)" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -633,6 +650,78 @@ document.addEventListener('keydown', e => {
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); (e.shiftKey?$('#redo'):$('#undo')).click(); }
   if((e.key==='Delete'||e.key==='Backspace') && sel){ const before=snapshot(); page().objs=objs().filter(o=>o!==sel); sel=null; commit(before); draw(); }
 });
+
+
+// ---------- class 4 lessons (textbook text from വിദ്യ@AMUP) ----------
+const SUBJECTS = [['മലയാളം','മലയാളം'],['English','English'],['ഗണിതം','ഗണിതം'],['പരിസരപഠനം','പരിസരപഠനം']];
+let BOOK=null, lessonEl=null, lessonSubj=SUBJECTS[0][0];
+async function loadBook(){ if(BOOK) return BOOK; const r = await fetch('data/textbook4.json'); BOOK = await r.json(); return BOOK; }
+function unitSort(a,b){ const n=x=>+(x.match(/\d+/)||[0])[0]; return n(a)-n(b); }
+function cleanText(t){
+  return t.split('\n').filter(l=>!/^\s*(IV|Environmental Science|Mathematics|English|\d{1,3})\s*$/.test(l)).join('\n')
+    .split(/\n\s*\n+/).map(x=>x.replace(/[.\-]{6,}/g,' ……… ').trim()).filter(x=>x.length>1)
+    .flatMap(block=>{ if(block.length<=360) return [block]; const out=[]; let cur=''; for(const ln of block.split('\n')){ if(cur && (cur+ln).length>300){ out.push(cur.trim()); cur=''; } cur+=ln+'\n'; } if(cur.trim()) out.push(cur.trim()); return out; });
+}
+function wrapForBoard(text, size, maxW){
+  ctx.font = textFont({size}); const out=[];
+  let line=''; for(const w of text.replace(/\s*\n\s*/g,' ').split(' ')){ const t=line?line+' '+w:w; if(ctx.measureText(t).width>maxW && line){ out.push(line); line=w; } else line=t; } if(line) out.push(line);
+  return out.join('\n');
+}
+function nextFreeY(){ let y=24; for(const o of objs()){ const b=bbox(o); y=Math.max(y,b.y+b.h+16); } return y; }
+function addTextToBoard(text, size){
+  const before=snapshot(); const x = lessonEl ? Math.min(W*0.42, 500) : 40;
+  const maxW = Math.max(260, W - x - 40);
+  const t = wrapForBoard(text, size, maxW), hgt = t.split('\n').length*size*1.25;
+  let y = nextFreeY();
+  if(objs().length && y + hgt > H - 150){ $('#addpg').click(); y = 24; }
+  const b2 = snapshot();
+  objs().push({type:'text', x, y, text:t, size, color:st.color==='#ffffff'&&page().bg!=='chalk'?COLORS[0]:st.color});
+  commit(y===24 && objs().length===1 ? b2 : before); draw();
+}
+function wordsOf(text){
+  const stop=new Set(['the','and','are','was','you','your','they','this','that','with','have','what','from','for','its','can','his','her','their','them','there','these','those','which','who','how','why','when','will','into','about','all','not','but','has','had','did','does','our','out','one','two','some','any','may','very','also','then','than','write','name','names']);
+  const ws = (text.match(/[\p{L}\p{M}]+/gu)||[]).filter(w=>w.length>2 && !stop.has(w.toLowerCase()));
+  return [...new Set(ws)].slice(0,14);
+}
+async function openLessons(){
+  if(lessonEl){ lessonEl.remove(); lessonEl=null; return; }
+  lessonEl = document.createElement('section'); lessonEl.className='lesson'; lessonEl.setAttribute('aria-label','4ാം ക്ലാസ് പാഠങ്ങൾ');
+  lessonEl.innerHTML = `<header><button class="ib" id="ls-back" type="button" aria-label="പിന്നോട്ട്" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="ls-title">4ാം ക്ലാസ് പാഠങ്ങൾ</h2><button class="ib" id="ls-close" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="subs" id="ls-subs"></div><div class="body" id="ls-body"><div class="status"><span class="spin"></span>പാഠങ്ങൾ എടുക്കുന്നു…</div></div>`;
+  stage.appendChild(lessonEl);
+  $('#ls-close').onclick = () => { lessonEl.remove(); lessonEl=null; };
+  $('#ls-back').onclick = () => showUnits();
+  try{ await loadBook(); showUnits(); }
+  catch{ $('#ls-body').innerHTML = '<p class="note">പാഠങ്ങൾ തുറക്കാൻ പറ്റിയില്ല. ഇന്റർനെറ്റ് നോക്കി വീണ്ടും ശ്രമിക്കൂ.</p>'; }
+}
+function showUnits(){
+  if(!lessonEl) return; $('#ls-back').hidden=true; $('#ls-title').textContent='4ാം ക്ലാസ് പാഠങ്ങൾ';
+  const subs=$('#ls-subs'); subs.hidden=false;
+  subs.innerHTML = SUBJECTS.map(([k,n])=>`<button class="chip" type="button" data-s="${k}" aria-pressed="${k===lessonSubj}">${n}</button>`).join('');
+  subs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lessonSubj=b.dataset.s; showUnits(); });
+  const keys = Object.keys(BOOK).filter(k=>k.startsWith(lessonSubj+'|')).map(k=>k.split('|')[1]).sort(unitSort);
+  const body=$('#ls-body'); body.innerHTML='';
+  keys.forEach(u=>{ const b=document.createElement('button'); b.type='button'; b.className='unit'; b.textContent=u; b.onclick=()=>showUnit(u); body.appendChild(b); });
+  body.insertAdjacentHTML('beforeend','<p class="note">പാഠപുസ്തക ഉള്ളടക്കം വിദ്യ@AMUP ആപ്പിൽ നിന്ന്.</p>');
+}
+function showUnit(u){
+  $('#ls-back').hidden=false; $('#ls-title').textContent=u; $('#ls-subs').hidden=true;
+  const body=$('#ls-body'); body.innerHTML='';
+  const top=document.createElement('div'); top.className='para';
+  top.innerHTML='<p><b></b></p><div class="acts"><button type="button">പുതിയ പേജിൽ തലക്കെട്ട്</button></div>';
+  top.querySelector('b').textContent=u;
+  top.querySelector('button').onclick=()=>{ $('#addpg').click(); const before=snapshot(); objs().push({type:'text',x:Math.min(W*0.42,500),y:24,text:wrapForBoard(u,48,Math.max(260,W-Math.min(W*0.42,500)-40)),size:48,color:'#1f5fbf'}); commit(before); draw(); };
+  body.appendChild(top);
+  cleanText(BOOK[lessonSubj+'|'+u]||'').forEach(txt=>{
+    const d=document.createElement('div'); d.className='para';
+    const p=document.createElement('p'); p.textContent=txt;
+    const a=document.createElement('div'); a.className='acts';
+    const b1=document.createElement('button'); b1.type='button'; b1.textContent='ബോർഡിലേക്ക്'; b1.onclick=()=>addTextToBoard(txt, 30);
+    const b2=document.createElement('button'); b2.type='button'; b2.textContent='✨ ചിത്രം'; b2.onclick=()=>{ const ws=wordsOf(txt); magicBox=null; openSheet(); showPicks([], ''); setStatus('ചിത്രം വേണ്ട വാക്ക് തൊടുക'); lastCands=ws; showCands(ws, ''); $('#ai-word').value=''; };
+    a.append(b1,b2); d.append(p,a); body.appendChild(d);
+  });
+  body.scrollTop=0;
+}
+$('#lessons').onclick = openLessons;
 
 // ---------- first run: a sample page so the board shows what it does ----------
 if(!saved){
