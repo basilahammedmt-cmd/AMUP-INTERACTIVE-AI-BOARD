@@ -26,17 +26,18 @@
   --chalk:#f2b632;       /* chalk-yellow highlight for the AI action */
   --danger:#c2412d;
   --stage:#dfe5e0;       /* around the board */
+  --paperc:#f7faf8;--paperink:#1d2a26;
   --shadow:0 6px 24px rgba(20,40,32,.16),0 1px 3px rgba(20,40,32,.12);
   --f-display:"Baloo Chettan 2","Noto Sans Malayalam",system-ui,sans-serif;
   --f-body:"Noto Sans Malayalam","Baloo Chettan 2",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --chrome:#1c2522;--chrome-2:#27322e;--ink:#e9efeb;--muted:#9fb0a9;--line:#34423d;
-  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;
+  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;--paperc:#18211e;--paperink:#e9efeb;
   --shadow:0 6px 24px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);color-scheme:dark}}
 :root[data-theme="dark"]{
   --chrome:#1c2522;--chrome-2:#27322e;--ink:#e9efeb;--muted:#9fb0a9;--line:#34423d;
-  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;
+  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;--paperc:#18211e;--paperink:#e9efeb;
   --shadow:0 6px 24px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);color-scheme:dark}
 html,body{height:100%}
 body{background:var(--stage);color:var(--ink);font-family:var(--f-body);overflow:hidden;-webkit-user-select:none;user-select:none}
@@ -117,6 +118,50 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 .para .acts button{height:36px;border-radius:9px;border:1px solid var(--line);background:var(--chrome);padding:0 10px;cursor:pointer;font-size:14px}
 .para .acts button:first-child{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .lesson .note{font-size:13px;color:var(--muted);margin:0}
+.pop{position:absolute;z-index:8;width:min(360px,calc(100% - 16px));background:var(--chrome);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:10px;animation:pop .2s ease-out}
+.pop input{height:44px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 12px;font-family:var(--f-display);font-size:22px}
+.popbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.pb{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--line);background:var(--chrome-2);border-radius:12px;padding:10px 4px;cursor:pointer;font-size:14px;font-weight:600}
+.pb svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pb.ai{background:var(--chalk);color:#3a2600;border-color:transparent}
+.note{font-size:13px;color:var(--muted);margin:0;line-height:1.5}
+.help{position:absolute;z-index:8;inset:12px max(12px,env(safe-area-inset-right,0px)) 12px max(12px,env(safe-area-inset-left,0px));max-width:1100px;margin:0 auto;background:var(--paperc);color:var(--paperink);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;-webkit-user-select:text;user-select:text;--z:1}
+.help header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--chrome);color:var(--ink)}
+.help header h2{margin:0 auto 0 4px;font-family:var(--f-display);font-size:22px}
+.hw{display:flex;align-items:center;background:var(--stage);border:1px solid var(--line);border-radius:10px}
+.hw input{height:40px;width:min(220px,40vw);border:0;background:transparent;color:var(--ink);padding:0 10px;font-family:var(--f-display);font-size:18px}
+.help select{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 8px;font-size:15px}
+.help .ib{font-weight:700}
+.help>.cands{padding:8px 12px 0}
+.htabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:var(--chrome)}
+.htabs button{flex:none;border:1px solid var(--line);background:var(--stage);color:var(--ink);border-radius:10px;height:42px;padding:0 16px;font-size:15px;cursor:pointer;font-weight:600}
+.htabs button[aria-selected="true"]{background:var(--chalk);color:#3a2600;border-color:transparent}
+.hbody{flex:1;overflow:auto;padding:18px clamp(14px,3vw,32px);font-size:calc(19px * var(--z));line-height:1.65}
+.hbody .note{font-size:calc(14px * var(--z))}
+.explain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:24px;align-items:start}
+@media (max-width:700px){.explain{grid-template-columns:minmax(0,1fr)}}
+.explain h3{margin:0 0 8px;font-family:var(--f-display);font-size:1.4em}
+.explain p{margin:0 0 10px}.explain ul{margin:0 0 12px;padding-left:1.2em}.explain li{margin:4px 0}
+.eimg{display:flex;flex-direction:column;align-items:center;gap:4px}
+.eimg img{width:100%;border-radius:12px;background:#fff;cursor:pointer;border:2px solid var(--line)}
+.eimg span{font-size:13px;color:var(--muted)}
+.sm2{height:40px;border-radius:10px;border:1px solid var(--line);background:var(--chrome-2);color:var(--ink);padding:0 12px;margin:4px 6px 0 0;cursor:pointer;font-size:14px}
+.mcq .qn{font-weight:700;margin:0 0 12px}
+.opts{display:grid;gap:8px}
+.opt{text-align:left;border:2px solid var(--line);background:var(--stage);color:var(--paperink);border-radius:12px;padding:12px 14px;font-size:1em;cursor:pointer}
+.opt.ok{border-color:#2e8b57;background:color-mix(in srgb,#2e8b57 18%,var(--stage))}
+.opt.no{border-color:#c0392b;background:color-mix(in srgb,#c0392b 15%,var(--stage))}
+.why{margin:10px 0 0;font-size:.9em;color:var(--muted)}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
+.vlist{display:grid;gap:8px;margin-top:10px}
+.vbtn{display:block;padding:14px 16px;border-radius:12px;background:var(--stage);border:1px solid var(--line);color:var(--paperink);text-decoration:none;font-weight:600}
+.exl{margin:0;padding-left:1.3em}.exl li{margin:8px 0}
+.keybox{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.6}
+.keybox a,.settings a{color:var(--accent)}
+.settings{right:12px;min-width:min(340px,calc(100% - 24px));gap:8px;padding:14px}
+.settings label{display:grid;gap:4px;font-size:14px}
+.settings input{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 10px}
+.settings .row{display:flex;gap:6px}
 @media (max-width:560px){.tool{width:44px;height:44px}.brand span{display:none}.lessbtn{font-size:15px;padding:0 10px}.size input{width:90px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -139,6 +184,7 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
       <button class="ib" id="bgbtn" title="പശ്ചാത്തലം" aria-label="പശ്ചാത്തലം"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18"/></svg></button>
       <button class="ib" id="clear" title="പേജ് മായ്ക്കുക" aria-label="പേജ് മായ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
       <button class="ib" id="export" title="ചിത്രമായി സേവ് ചെയ്യുക" aria-label="PNG ആയി സേവ് ചെയ്യുക"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
+      <button class="ib" id="settings" title="സെറ്റിങ്സ്" aria-label="സെറ്റിങ്സ്"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button class="ib" id="full" title="ഫുൾസ്ക്രീൻ" aria-label="ഫുൾസ്ക്രീൻ"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </header>
@@ -166,7 +212,7 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 (() => {
 'use strict';
 // ---------- constants ----------
-const COLORS = ['#1d2a26','#1f5fbf','#d1342b','#178a4c','#e07b00','#7b3fb0','#ffffff'];
+const COLORS = ['#1d2a26','#ffffff','#ffe066','#7cc7ff','#ff8a80','#9be59b','#1f5fbf','#d1342b'];
 const HL_COLORS = ['#ffe14d','#7cf0a2','#7ad3ff','#ff9ccf','#ffb35c'];
 const SHAPES = [
   ['rect','<rect x="4" y="6" width="16" height="12" rx="1"/>','ചതുരം'],
@@ -209,10 +255,10 @@ function toast(msg, ms=2600){
 
 // ---------- state ----------
 const saved = store.get('vb-board-v1');
-let pages = saved?.pages?.length ? saved.pages : [{bg:'plain', objs:[]}];
+let pages = saved?.pages?.length ? saved.pages : [{bg:'chalk', objs:[]}];
 let cur = Math.min(saved?.cur||0, pages.length-1);
 const st = {
-  tool:'pen', color:COLORS[0], hlColor:HL_COLORS[0],
+  tool:'pen', color: (saved ? COLORS[0] : '#ffffff'), hlColor:HL_COLORS[0],
   size:{pen:5, hl:24, eraser:36, shape:5}, shape:'rect', textSize:44,
 };
 const userLib = store.get('vb-lib-v1') || [];   // pictures this teacher already made with AI
@@ -246,7 +292,7 @@ new ResizeObserver(resize).observe(stage);
 
 // ---------- drawing ----------
 function drawBg(c, bg, w, h){
-  c.fillStyle = bg==='chalk' ? '#20372f' : '#ffffff'; c.fillRect(0,0,w,h);
+  c.fillStyle = bg==='chalk' ? '#1f4a3f' : '#ffffff'; c.fillRect(0,0,w,h);
   if(bg==='grid'){ c.strokeStyle='#e3ebf3'; c.lineWidth=1; c.beginPath();
     for(let x=0;x<w;x+=40){c.moveTo(x+.5,0);c.lineTo(x+.5,h);} for(let y=0;y<h;y+=40){c.moveTo(0,y+.5);c.lineTo(w,y+.5);} c.stroke(); }
   if(bg==='lines'){ // four-line copybook for letter practice
@@ -359,7 +405,7 @@ let ptr=null, start=null, before=null, drag=null, eraserAt=null, magicPending=nu
 const pos = e => { const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
 cv.addEventListener('pointerdown', e => {
   if(ptr!==null) return; // ignore second finger / palm while drawing
-  closeMenus(); hideMagicChip();
+  closeMenus(); hideMagicChip(); closePop();
   ptr = e.pointerId; cv.setPointerCapture(ptr);
   const [x,y] = pos(e); start=[x,y]; before = snapshot();
   const t = st.tool, pr = e.pointerType==='pen' ? (e.pressure||.5) : .5;
@@ -415,7 +461,7 @@ function showMagicChip(loop, inside){
   hideMagicChip(); magicPending = {loop, inside};
   chipEl = document.createElement('div'); chipEl.className='float';
   const b = bbox(loop);
-  chipEl.innerHTML = `<button class="fbtn go" type="button">✨ ചിത്രം കൊണ്ടുവരിക</button>`;
+  chipEl.innerHTML = `<button class="fbtn go" type="button">✨ AI സഹായം</button>`;
   chipEl.style.left = Math.min(W-220, Math.max(8, b.x)) + 'px'; chipEl.style.top = Math.max(8, b.y-58) + 'px';
   chipEl.firstChild.onclick = () => { const m = magicPending; hideMagicChip(); const before=snapshot(); page().objs = objs().filter(o=>o!==m.loop); commit(before); draw(); runMagic(m.inside); };
   stage.appendChild(chipEl);
@@ -491,67 +537,217 @@ function libFind(word){
   return LIB.filter(it => norm(it.ml)===w || norm(it.en)===w);
 }
 
-let sheet=null, magicBox=null, searchId=0;
-function openSheet(){
-  if(sheet) return sheet;
-  sheet = document.createElement('section'); sheet.className='sheet'; sheet.setAttribute('aria-label','ചിത്രം കണ്ടെത്തുക');
-  sheet.innerHTML = `<h2>✨ ചിത്രം <button class="ib x" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></h2>
-    <div class="status" id="ai-status"></div>
-    <div class="cands" id="ai-cands"></div>
-    <div class="wordrow"><input id="ai-word" placeholder="വാക്ക് (ഉദാ: ഹൃദയം)" aria-label="വാക്ക്"><button class="btn" id="ai-go" type="button">തിരയുക</button></div>
-    <div class="picks" id="ai-picks"></div>
-    <p class="hint">ചിത്രം തൊട്ടാൽ ബോർഡിൽ വരും. വാക്ക് തെറ്റിയാൽ മുകളിലെ ഓപ്ഷനുകളിൽ ശരിയായത് തൊടുക, അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്ത് "തിരയുക".</p>`;
-  stage.appendChild(sheet);
-  sheet.querySelector('.x').onclick = closeSheet;
-  sheet.querySelector('#ai-go').onclick = () => { const w = $('#ai-word').value.trim(); if(w) search(w); };
-  $('#ai-word').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); $('#ai-go').click(); } });
-  return sheet;
-}
-function closeSheet(){ searchId++; if(sheet){ sheet.remove(); sheet=null; } }
-function setStatus(html, busy){ const s=$('#ai-status'); if(s) s.innerHTML = (busy?'<span class="spin" aria-hidden="true"></span>':'') + html; }
+// ---------- AI help panel: explanation, MCQ, videos, pictures, real-life examples ----------
+// Pictures and the basic explanation come from Wikipedia (free, no key).
+// Explanation in detail, MCQ and examples use Google Gemini's free tier with the teacher's own key (Settings).
+let magicBox=null, helpEl=null, popEl=null, lastCands=[], helpId=0;
+const LANGS = [['ml','മലയാളം','Malayalam'],['en','English','English'],['hi','हिन्दी','Hindi']];
+const prefs = Object.assign({lang:'ml', zoom:1}, store.get('vb-help-prefs')||{});
+const aiCache = new Map();
+const geminiKey = () => (store.get('vb-gemini-key')||'').trim();
 function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function showCands(list, chosen){
-  const box=$('#ai-cands'); if(!box) return; box.innerHTML='';
-  list.forEach(w => { const b=document.createElement('button'); b.type='button'; b.className='chip'; b.textContent=w; b.setAttribute('aria-pressed', String(w===chosen)); b.onclick=()=>search(w); box.appendChild(b); });
-}
-function showPicks(items, word){
-  const box = $('#ai-picks'); if(!box) return; box.innerHTML='';
-  items.forEach(it => {
-    const b = document.createElement('button'); b.type='button'; b.className='pick';
-    const im = document.createElement('img'); im.alt = word||''; im.loading='lazy'; im.referrerPolicy='no-referrer'; im.src = it.url;
-    im.onerror = () => b.remove();
-    const sp = document.createElement('span'); sp.textContent = it.tag;
-    b.append(im, sp); b.onclick = () => placePicture(it.url, word, im.naturalWidth||it.w, im.naturalHeight||it.h); box.appendChild(b);
-  });
-}
+function closeSheet(){ closeHelp(); }
+function closePop(){ if(popEl){ popEl.remove(); popEl=null; } }
+
+// 1) after circling: read the word, then offer AI help / picture
 async function runMagic(strokes){
-  magicBox = renderBox(strokes);
-  openSheet(); $('#ai-word').value=''; showPicks([], ''); showCands([], '');
-  setStatus('എഴുതിയത് വായിക്കുന്നു…', true);
-  const id = ++searchId;
+  magicBox = renderBox(strokes); closePop();
+  popEl = document.createElement('div'); popEl.className='pop';
+  const b = magicBox;
+  popEl.style.left = Math.max(8, Math.min(W-380, b.x + b.w/2 - 180)) + 'px';
+  popEl.style.top = Math.min(H-170, b.y + b.h + 14) + 'px';
+  popEl.innerHTML = `<div class="status"><span class="spin"></span>എഴുതിയത് വായിക്കുന്നു…</div>`;
+  stage.appendChild(popEl);
+  const id = ++helpId;
   const [ml, en] = await Promise.all([readHandwriting(strokes,'ml').catch(()=>null), readHandwriting(strokes,'en').catch(()=>null)]);
-  if(id!==searchId) return;
-  if(!ml && !en){ setStatus('ഇന്റർനെറ്റ് കിട്ടുന്നില്ല. വാക്ക് ടൈപ്പ് ചെയ്ത് തിരയൂ.'); $('#ai-word').focus(); return; }
+  if(id!==helpId || !popEl) return;
   const cands = [...(ml||[]).slice(0,3), ...(en||[]).slice(0,2)].filter((v,i,a)=>v && a.indexOf(v)===i);
-  if(!cands.length){ setStatus('വായിക്കാൻ പറ്റിയില്ല. വാക്ക് ടൈപ്പ് ചെയ്യൂ.'); return; }
-  search(cands[0], cands);
+  showPop(cands, cands[0]||'', !ml && !en);
 }
-let lastCands=[];
-async function search(word, cands){
-  if(cands) lastCands = cands;
-  showCands(lastCands, word); $('#ai-word').value = word;
-  const id = ++searchId;
-  const lib = libFind(word).map(it=>({url:svgURL(it.svg), tag:'ലൈബ്രറി', w:400, h:400}));
-  showPicks(lib, word);
-  setStatus(`<b>${escapeHTML(word)}</b>: ചിത്രങ്ങൾ തിരയുന്നു…`, true);
-  const {pics, en} = await findPictures(word);
-  if(id!==searchId) return;
-  const all = [...lib, ...pics];
-  showPicks(all, word);
-  setStatus(all.length ? `<b>${escapeHTML(word)}</b>${en && en!==word ? ' · '+escapeHTML(en) : ''} <button class="ib" id="ai-say" type="button" aria-label="ഉച്ചരിക്കുക" title="ഉച്ചരിക്കുക"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>`
-                       : `"${escapeHTML(word)}" എന്നതിന് ചിത്രം കിട്ടിയില്ല. മുകളിലെ മറ്റൊരു വാക്ക് തൊടുക, അല്ലെങ്കിൽ ഇംഗ്ലീഷിൽ ടൈപ്പ് ചെയ്യൂ.`);
-  const say = $('#ai-say'); if(say) say.onclick = () => speak(word);
+function showPop(cands, word, offline){
+  lastCands = cands;
+  popEl.innerHTML = `
+    ${offline ? '<p class="note">ഇന്റർനെറ്റ് കിട്ടുന്നില്ല. വാക്ക് ടൈപ്പ് ചെയ്യൂ.</p>' : ''}
+    <div class="cands"></div>
+    <input id="pop-word" aria-label="വാക്ക്" placeholder="വാക്ക്">
+    <div class="popbtns">
+      <button type="button" class="pb ai" data-go="explain"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z"/></svg>AI സഹായം</button>
+      <button type="button" class="pb" data-go="images"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 17-5-5-9 8"/></svg>ചിത്രം</button>
+      <button type="button" class="pb" data-go="cancel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>റദ്ദാക്കുക</button>
+    </div>`;
+  const inp = popEl.querySelector('#pop-word'); inp.value = word;
+  const cbox = popEl.querySelector('.cands');
+  cands.forEach(w=>{ const c=document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=w; c.setAttribute('aria-pressed', String(w===word)); c.onclick=()=>{ inp.value=w; cbox.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed', String(x===c))); }; cbox.appendChild(c); });
+  popEl.querySelectorAll('[data-go]').forEach(btn=>btn.onclick=()=>{
+    const go=btn.dataset.go, w=inp.value.trim(); if(go==='cancel'){ closePop(); return; }
+    if(!w){ inp.focus(); return; } closePop(); openHelp(w, go);
+  });
+  if(!word) inp.focus();
 }
+
+// 2) the help panel
+function openHelp(word, tab='explain', cands){
+  if(cands) lastCands=cands;
+  closeHelp(); closePop();
+  helpEl = document.createElement('section'); helpEl.className='help'; helpEl.setAttribute('aria-label','AI സഹായം');
+  helpEl.style.setProperty('--z', prefs.zoom);
+  helpEl.innerHTML = `
+    <header>
+      <h2>AI സഹായം</h2>
+      <div class="hw"><input id="help-word" aria-label="വാക്ക്"><button class="ib" id="help-go" type="button" aria-label="തിരയുക"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button></div>
+      <select id="help-lang" aria-label="ഭാഷ">${LANGS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select>
+      <div class="grp"><button class="ib" id="z-dn" type="button" aria-label="അക്ഷരം ചെറുതാക്കുക">A−</button><button class="ib" id="z-up" type="button" aria-label="അക്ഷരം വലുതാക്കുക">A+</button></div>
+      <button class="ib" id="help-x" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </header>
+    <div class="cands" id="help-cands"></div>
+    <nav class="htabs" role="tablist">
+      <button role="tab" data-t="explain">വിശദീകരണം</button><button role="tab" data-t="mcq">MCQ</button><button role="tab" data-t="videos">വീഡിയോ</button><button role="tab" data-t="images">ചിത്രങ്ങൾ</button><button role="tab" data-t="examples">നിത്യജീവിത ഉദാഹരണങ്ങൾ</button>
+    </nav>
+    <div class="hbody" id="help-body"></div>`;
+  stage.appendChild(helpEl);
+  const st2 = {word, tab};
+  helpEl._st = st2;
+  $('#help-word').value = word; $('#help-lang').value = prefs.lang;
+  const cb = $('#help-cands');
+  lastCands.filter(c=>c!==word).slice(0,5).forEach(w=>{ const c=document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=w; c.onclick=()=>{ st2.word=w; $('#help-word').value=w; renderTab(); }; cb.appendChild(c); });
+  $('#help-x').onclick = closeHelp;
+  $('#help-go').onclick = () => { const w=$('#help-word').value.trim(); if(w){ st2.word=w; renderTab(); } };
+  $('#help-word').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#help-go').click(); } });
+  $('#help-lang').onchange = e => { prefs.lang=e.target.value; store.set('vb-help-prefs',prefs); renderTab(); };
+  const zoom = d => { prefs.zoom = Math.max(.8, Math.min(1.8, +(prefs.zoom+d).toFixed(2))); helpEl.style.setProperty('--z', prefs.zoom); store.set('vb-help-prefs',prefs); };
+  $('#z-dn').onclick = () => zoom(-.1); $('#z-up').onclick = () => zoom(.1);
+  helpEl.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ st2.tab=b.dataset.t; renderTab(); });
+  renderTab();
+}
+function closeHelp(){ helpId++; if(helpEl){ helpEl.remove(); helpEl=null; } }
+function langName(){ return (LANGS.find(l=>l[0]===prefs.lang)||LANGS[0])[2]; }
+function busy(msg){ return `<div class="status"><span class="spin"></span>${msg}</div>`; }
+
+async function renderTab(){
+  if(!helpEl) return; const {word, tab} = helpEl._st; const id = ++helpId;
+  helpEl.querySelectorAll('[data-t]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.t===tab)));
+  const body = $('#help-body');
+  if(tab==='images'){
+    body.innerHTML = busy('ചിത്രങ്ങൾ തിരയുന്നു…');
+    const lib = libFind(word).map(it=>({url:svgURL(it.svg), tag:'ലൈബ്രറി', w:400, h:400}));
+    const {pics} = await findPictures(word).catch(()=>({pics:[]}));
+    if(id!==helpId) return;
+    const all=[...lib,...pics];
+    if(!all.length){ body.innerHTML = `<p class="note">"${escapeHTML(word)}" എന്നതിന് ചിത്രം കിട്ടിയില്ല. ഇംഗ്ലീഷിൽ ടൈപ്പ് ചെയ്ത് നോക്കൂ.</p>`; return; }
+    body.innerHTML = '<p class="note">ചിത്രം തൊട്ടാൽ ബോർഡിൽ വരും. അവിടെ വലുതാക്കാം, ചെറുതാക്കാം.</p><div class="picks"></div>';
+    const g = body.querySelector('.picks');
+    all.forEach(it=>{ const b=document.createElement('button'); b.type='button'; b.className='pick';
+      const im=document.createElement('img'); im.alt=word; im.loading='lazy'; im.referrerPolicy='no-referrer'; im.src=it.url; im.onerror=()=>b.remove();
+      const sp=document.createElement('span'); sp.textContent='ബോർഡിൽ തുറക്കുക · '+it.tag;
+      b.append(im,sp); b.onclick=()=>placePicture(it.url, word, im.naturalWidth||it.w, im.naturalHeight||it.h); g.appendChild(b); });
+    return;
+  }
+  if(tab==='videos'){
+    const q1 = `${word} class 4 ${prefs.lang==='ml'?'malayalam':prefs.lang==='hi'?'hindi':'for kids'}`;
+    body.innerHTML = `<p class="note">YouTube പുതിയ ടാബിൽ തുറക്കും. വീഡിയോ കഴിഞ്ഞ് ബോർഡിലേക്ക് തിരിച്ചു വരാം.</p>
+      <div class="vlist">
+        <a class="vbtn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q1)}">▶ ${escapeHTML(q1)}</a>
+        <a class="vbtn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(word+' animation for kids')}">▶ ${escapeHTML(word)} animation for kids</a>
+        <a class="vbtn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(word+' explained')}">▶ ${escapeHTML(word)} explained</a>
+      </div>`;
+    return;
+  }
+  // explain / mcq / examples share one AI answer
+  body.innerHTML = busy(tab==='explain' ? 'വിശദീകരണം തയ്യാറാക്കുന്നു…' : tab==='mcq' ? 'ചോദ്യങ്ങൾ തയ്യാറാക്കുന്നു…' : 'ഉദാഹരണങ്ങൾ തയ്യാറാക്കുന്നു…');
+  const wikiP = wikiSummary(word).catch(()=>null);
+  let ai = null, err = null;
+  if(geminiKey()){ try{ ai = await aiHelp(word); }catch(e){ err = e; } }
+  const wiki = await wikiP;
+  if(id!==helpId) return;
+  if(tab==='explain') renderExplain(body, word, ai, wiki, err);
+  else if(!ai) body.innerHTML = noAI(err);
+  else if(tab==='mcq') renderMCQ(body, ai.mcq||[]);
+  else renderExamples(body, ai.examples||[]);
+}
+function noAI(err){
+  if(err) return `<p class="note">AI മറുപടി കിട്ടിയില്ല (${escapeHTML(err.message||'error')}). കുറച്ച് കഴിഞ്ഞ് വീണ്ടും നോക്കൂ, അല്ലെങ്കിൽ ⚙ സെറ്റിങ്സിൽ key പരിശോധിക്കൂ.</p>`;
+  return `<div class="keybox"><p><b>MCQ-ഉം ഉദാഹരണങ്ങളും കിട്ടാൻ ഒരു സൗജന്യ AI key വേണം.</b></p>
+    <ol><li><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> തുറന്ന് Google അക്കൗണ്ട് കൊണ്ട് ലോഗിൻ ചെയ്യൂ.</li><li>"Create API key" അമർത്തി key കോപ്പി ചെയ്യൂ.</li><li>മുകളിലെ ⚙ ബട്ടൺ തൊട്ട് അവിടെ പേസ്റ്റ് ചെയ്യൂ.</li></ol>
+    <p class="note">സൗജന്യമാണ്, കാർഡ് വേണ്ട. key ഈ ഫോണിൽ മാത്രം സൂക്ഷിക്കും.</p></div>`;
+}
+function renderExplain(body, word, ai, wiki, err){
+  body.innerHTML = '<div class="explain"><div class="etext"></div><div class="eimg"></div></div>';
+  const t = body.querySelector('.etext'), im = body.querySelector('.eimg');
+  const h = document.createElement('h3'); h.textContent = ai?.title || wiki?.title || word; t.appendChild(h);
+  if(ai?.explanation){
+    const p=document.createElement('p'); p.textContent=ai.explanation.intro||''; t.appendChild(p);
+    const ul=document.createElement('ul'); (ai.explanation.points||[]).forEach(x=>{ const li=document.createElement('li'); li.textContent=x; ul.appendChild(li); }); t.appendChild(ul);
+  } else if(wiki?.extract){
+    const p=document.createElement('p'); p.textContent=wiki.extract; t.appendChild(p);
+    const n=document.createElement('div'); n.innerHTML = err ? noAI(err) : (geminiKey()?'':'<p class="note">വിക്കിപീഡിയയിൽ നിന്ന്. കുട്ടികൾക്ക് പറ്റിയ വിശദീകരണം, MCQ, ഉദാഹരണങ്ങൾ എന്നിവയ്ക്ക് ⚙ സെറ്റിങ്സിൽ സൗജന്യ AI key ചേർക്കൂ.</p>'); t.appendChild(n);
+  } else { t.insertAdjacentHTML('beforeend', noAI(err)); }
+  const say=document.createElement('button'); say.type='button'; say.className='sm2'; say.textContent='🔊 വായിച്ചു കേൾപ്പിക്കുക'; say.onclick=()=>speak([h.textContent, ...[...t.querySelectorAll('p,li')].map(x=>x.textContent)].join('. ')); t.appendChild(say);
+  const add=document.createElement('button'); add.type='button'; add.className='sm2'; add.textContent='ബോർഡിലേക്ക് എഴുതുക'; add.onclick=()=>{ const pts=[...t.querySelectorAll('li')].map(x=>'• '+x.textContent); addTextToBoard([h.textContent, ...(pts.length?pts:[t.querySelector('p')?.textContent||''])].join('\n'), 30); closeHelp(); }; t.appendChild(add);
+  if(wiki?.thumb){ const i=document.createElement('img'); i.src=wiki.thumb; i.alt=word; i.referrerPolicy='no-referrer'; i.onclick=()=>placePicture(wiki.thumb, word, wiki.w, wiki.h); i.title='ബോർഡിൽ തുറക്കുക'; im.appendChild(i); const c=document.createElement('span'); c.textContent='തൊട്ടാൽ ബോർഡിൽ'; im.appendChild(c); }
+}
+function renderMCQ(body, qs){
+  if(!qs.length){ body.innerHTML='<p class="note">ചോദ്യങ്ങൾ കിട്ടിയില്ല.</p>'; return; }
+  let i=0, score=0;
+  const show = () => {
+    const q = qs[i]; body.innerHTML = `<div class="mcq"><p class="qn"></p><div class="opts"></div><p class="why" hidden></p><div class="mrow"><span class="note">${i+1} / ${qs.length} · ശരി: ${score}</span><button type="button" class="btn" hidden>${i<qs.length-1?'അടുത്തത് →':'വീണ്ടും തുടങ്ങുക'}</button></div></div>`;
+    body.querySelector('.qn').textContent = `${i+1}. ${q.q}`;
+    const box = body.querySelector('.opts'), nx = body.querySelector('.mrow .btn'), why = body.querySelector('.why');
+    (q.options||[]).forEach((o,j)=>{ const b=document.createElement('button'); b.type='button'; b.className='opt'; b.textContent=`${'ABCD'[j]}) ${o}`;
+      b.onclick=()=>{ if(box.dataset.done) return; box.dataset.done=1; box.children[q.answer]?.classList.add('ok'); if(j!==q.answer) b.classList.add('no'); else score++; why.textContent=q.why||''; why.hidden=!q.why; nx.hidden=false; body.querySelector('.mrow .note').textContent=`${i+1} / ${qs.length} · ശരി: ${score}`; };
+      box.appendChild(b); });
+    nx.onclick = () => { if(i<qs.length-1){ i++; } else { i=0; score=0; } show(); };
+  };
+  show();
+}
+function renderExamples(body, ex){
+  if(!ex.length){ body.innerHTML='<p class="note">ഉദാഹരണങ്ങൾ കിട്ടിയില്ല.</p>'; return; }
+  body.innerHTML='<ol class="exl"></ol>'; const ol=body.querySelector('ol');
+  ex.forEach(x=>{ const li=document.createElement('li'); li.textContent=x; ol.appendChild(li); });
+}
+async function wikiSummary(word){
+  const lang = isML(word) ? 'ml' : 'en';
+  const j = await wapi(`${lang}.wikipedia.org`, {action:'query', titles:word, redirects:1, prop:'extracts|pageimages', exintro:1, explaintext:1, exsentences:4, piprop:'thumbnail', pithumbsize:500});
+  const p = Object.values(j.query?.pages||{})[0]; if(!p || p.missing!==undefined) return null;
+  return {title:p.title, extract:p.extract, thumb:p.thumbnail?.source, w:p.thumbnail?.width, h:p.thumbnail?.height};
+}
+async function aiHelp(word){
+  const k = word+'|'+prefs.lang; if(aiCache.has(k)) return aiCache.get(k);
+  const prompt = `You help a primary school teacher in Kerala, India teach Class 4 children (age 9) on a classroom board.
+Topic word: "${word}".
+Write everything in ${langName()}${prefs.lang==='ml'?' (simple Kerala classroom Malayalam, Unicode)':''}. Use short sentences and examples from Kerala village and school life.
+Return only JSON:
+{"title": "topic name", "explanation": {"intro": "2-3 simple sentences", "points": ["4 to 6 short key points"]},
+ "mcq": [{"q": "question", "options": ["4 options"], "answer": 0, "why": "one-line reason"}],
+ "examples": ["4 to 5 real-life examples a 9-year-old in Kerala will know"]}
+Give 5 MCQs; "answer" is the index (0-3) of the correct option.`;
+  const models = ['gemini-flash-latest','gemini-2.5-flash','gemini-2.0-flash'];
+  let lastErr;
+  for(const m of models){
+    try{
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(geminiKey())}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', temperature:0.6}})});
+      const j = await r.json();
+      if(!r.ok){ lastErr = new Error(j?.error?.status==='RESOURCE_EXHAUSTED' ? 'ഇന്നത്തെ സൗജന്യ പരിധി കഴിഞ്ഞു' : r.status===400||r.status===403 ? 'key ശരിയല്ല' : (j?.error?.message||'HTTP '+r.status)); if(r.status===404) continue; throw lastErr; }
+      const txt = j.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || '';
+      const data = JSON.parse(txt.replace(/^```json\s*|```\s*$/g,''));
+      aiCache.set(k, data); return data;
+    }catch(e){ lastErr = e; if(!/HTTP 404/.test(e.message||'')) break; }
+  }
+  throw lastErr || new Error('AI');
+}
+function openSettings(){
+  closeMenus();
+  menuEl = document.createElement('div'); menuEl.className='menu settings';
+  menuEl.innerHTML = `<b>⚙ സെറ്റിങ്സ്</b>
+    <label>സൗജന്യ Gemini AI key<input id="gk" type="password" autocomplete="off" placeholder="AIza…"></label>
+    <p class="note"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">ഇവിടെ നിന്ന് key എടുക്കാം</a> (Google അക്കൗണ്ട്, സൗജന്യം). ഈ ഫോണിൽ മാത്രം സൂക്ഷിക്കും.</p>
+    <div class="row"><button type="button" class="btn" id="gk-save">സേവ്</button><button type="button" class="btn ghost" id="gk-clear">മായ്ക്കുക</button></div>`;
+  menuEl.style.top='8px'; menuEl.style.right='12px';
+  stage.appendChild(menuEl);
+  $('#gk').value = geminiKey();
+  $('#gk-save').onclick = () => { store.set('vb-gemini-key', $('#gk').value.trim()); aiCache.clear(); closeMenus(); toast($('#gk')?.value?'സേവ് ചെയ്തു':'സേവ് ചെയ്തു'); };
+  $('#gk-clear').onclick = () => { store.set('vb-gemini-key',''); $('#gk').value=''; };
+}
+
 function renderBox(strokes){
   let a=1e9,b=1e9,c=-1e9,d=-1e9; strokes.forEach(o=>{const bb=bbox(o); a=Math.min(a,bb.x);b=Math.min(b,bb.y);c=Math.max(c,bb.x+bb.w);d=Math.max(d,bb.y+bb.h);});
   return {x:a,y:b,w:c-a,h:d-b};
@@ -635,7 +831,7 @@ $('#bgbtn').onclick = e => {
     persist(); renderSub(); closeMenus(); draw(); };
   stage.appendChild(menuEl);
 };
-document.addEventListener('pointerdown', e => { if(menuEl && !menuEl.contains(e.target) && e.target.closest('#bgbtn')===null) closeMenus(); });
+document.addEventListener('pointerdown', e => { if(menuEl && !menuEl.contains(e.target) && e.target.closest('#bgbtn,#settings')===null) closeMenus(); });
 $('#full').onclick = () => { const d=document; try{ (d.fullscreenElement ? d.exitFullscreen() : d.documentElement.requestFullscreen()).catch(()=>toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല')); }catch{ toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല'); } };
 $('#export').onclick = async () => {
   const oc = document.createElement('canvas'); oc.width=cv.width; oc.height=cv.height; const c2=oc.getContext('2d'); c2.scale(DPR,DPR);
@@ -675,7 +871,7 @@ function addTextToBoard(text, size){
   let y = nextFreeY();
   if(objs().length && y + hgt > H - 150){ $('#addpg').click(); y = 24; }
   const b2 = snapshot();
-  objs().push({type:'text', x, y, text:t, size, color:st.color==='#ffffff'&&page().bg!=='chalk'?COLORS[0]:st.color});
+  objs().push({type:'text', x, y, text:t, size, color:page().bg==='chalk'?(st.color==='#1d2a26'?'#ffffff':st.color):(st.color==='#ffffff'?COLORS[0]:st.color)});
   commit(y===24 && objs().length===1 ? b2 : before); draw();
 }
 function wordsOf(text){
@@ -709,27 +905,28 @@ function showUnit(u){
   const top=document.createElement('div'); top.className='para';
   top.innerHTML='<p><b></b></p><div class="acts"><button type="button">പുതിയ പേജിൽ തലക്കെട്ട്</button></div>';
   top.querySelector('b').textContent=u;
-  top.querySelector('button').onclick=()=>{ $('#addpg').click(); const before=snapshot(); objs().push({type:'text',x:Math.min(W*0.42,500),y:24,text:wrapForBoard(u,48,Math.max(260,W-Math.min(W*0.42,500)-40)),size:48,color:'#1f5fbf'}); commit(before); draw(); };
+  top.querySelector('button').onclick=()=>{ $('#addpg').click(); const before=snapshot(); objs().push({type:'text',x:Math.min(W*0.42,500),y:24,text:wrapForBoard(u,48,Math.max(260,W-Math.min(W*0.42,500)-40)),size:48,color:page().bg==='chalk'?'#ffe066':'#1f5fbf'}); commit(before); draw(); };
   body.appendChild(top);
   cleanText(BOOK[lessonSubj+'|'+u]||'').forEach(txt=>{
     const d=document.createElement('div'); d.className='para';
     const p=document.createElement('p'); p.textContent=txt;
     const a=document.createElement('div'); a.className='acts';
     const b1=document.createElement('button'); b1.type='button'; b1.textContent='ബോർഡിലേക്ക്'; b1.onclick=()=>addTextToBoard(txt, 30);
-    const b2=document.createElement('button'); b2.type='button'; b2.textContent='✨ ചിത്രം'; b2.onclick=()=>{ const ws=wordsOf(txt); magicBox=null; openSheet(); showPicks([], ''); setStatus('ചിത്രം വേണ്ട വാക്ക് തൊടുക'); lastCands=ws; showCands(ws, ''); $('#ai-word').value=''; };
+    const b2=document.createElement('button'); b2.type='button'; b2.textContent='✨ AI സഹായം'; b2.onclick=()=>{ const ws=wordsOf(txt); magicBox=null; openHelp(ws[0]||'', 'images', ws); };
     a.append(b1,b2); d.append(p,a); body.appendChild(d);
   });
   body.scrollTop=0;
 }
 $('#lessons').onclick = openLessons;
+$('#settings').onclick = e => { e.stopPropagation(); if(menuEl){ closeMenus(); return; } openSettings(); };
 
 // ---------- first run: a sample page so the board shows what it does ----------
 if(!saved){
   const p = pages[0];
-  p.objs.push({type:'text', x:40, y:28, text:'ഇന്നത്തെ വാക്ക്', size:44, color:'#1f5fbf'});
-  p.objs.push({type:'text', x:40, y:96, text:'ഹൃദയം', size:72, color:'#1d2a26'});
+  p.objs.push({type:'text', x:40, y:28, text:'ഇന്നത്തെ വാക്ക്', size:44, color:'#ffe066'});
+  p.objs.push({type:'text', x:40, y:96, text:'ഹൃദയം', size:72, color:'#ffffff'});
   p.objs.push({type:'image', x:300, y:70, w:170, h:170, src:svgURL(LIB[0].svg), label:'ഹൃദയം'});
-  p.objs.push({type:'text', x:40, y:270, text:'ഉദാഹരണം: ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ', size:24, color:'#5d6c66'});
+  p.objs.push({type:'text', x:40, y:270, text:'ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ: AI സഹായം, ചിത്രം, MCQ', size:26, color:'#cfe8dc'});
 }
 setTool('pen'); updateTop();
 document.fonts?.ready?.then(draw);
