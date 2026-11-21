@@ -724,7 +724,7 @@ Give 5 MCQs; "answer" is the index (0-3) of the correct option.`;
   let lastErr;
   for(const m of models){
     try{
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(geminiKey())}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', temperature:0.6}})});
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {method:'POST', headers:{'Content-Type':'application/json','x-goog-api-key':geminiKey()}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', temperature:0.6}})});
       const j = await r.json();
       if(!r.ok){ lastErr = new Error(j?.error?.status==='RESOURCE_EXHAUSTED' ? 'ഇന്നത്തെ സൗജന്യ പരിധി കഴിഞ്ഞു' : r.status===400||r.status===403 ? 'key ശരിയല്ല' : (j?.error?.message||'HTTP '+r.status)); if(r.status===404) continue; throw lastErr; }
       const txt = j.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || '';
@@ -738,7 +738,7 @@ function openSettings(){
   closeMenus();
   menuEl = document.createElement('div'); menuEl.className='menu settings';
   menuEl.innerHTML = `<b>⚙ സെറ്റിങ്സ്</b>
-    <label>സൗജന്യ Gemini AI key<input id="gk" type="password" autocomplete="off" placeholder="AIza…"></label>
+    <label>സൗജന്യ Gemini AI key<input id="gk" type="password" autocomplete="off" placeholder="ഇവിടെ key പേസ്റ്റ് ചെയ്യൂ"></label>
     <p class="note"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">ഇവിടെ നിന്ന് key എടുക്കാം</a> (Google അക്കൗണ്ട്, സൗജന്യം). ഈ ഫോണിൽ മാത്രം സൂക്ഷിക്കും.</p>
     <div class="row"><button type="button" class="btn" id="gk-save">സേവ്</button><button type="button" class="btn ghost" id="gk-clear">മായ്ക്കുക</button></div>`;
   menuEl.style.top='8px'; menuEl.style.right='12px';
