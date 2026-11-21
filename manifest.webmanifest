@@ -1,0 +1,11 @@
+{
+  "name": "AMUP Interactive AI Board",
+  "short_name": "AI ബോർഡ്",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#ffffff",
+  "theme_color": "#0f7a63",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

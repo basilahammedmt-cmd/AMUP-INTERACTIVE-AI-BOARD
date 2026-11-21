@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="ml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f7a63">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>*{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Vidyarthi Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen classroom app. Slim top bar, the board fills the rest, a floating tool dock at the bottom (big touch targets for a smart panel). */
+:root{
+  --chrome:#f3f5f2;      /* top bar + dock surface */
+  --chrome-2:#e4e9e3;    /* pressed / hover */
+  --ink:#1d2a26;         /* text on chrome */
+  --muted:#5d6c66;
+  --line:#cfd8d2;
+  --accent:#0f7a63;      /* slate-teal, like a classroom board frame */
+  --accent-ink:#ffffff;
+  --chalk:#f2b632;       /* chalk-yellow highlight for the AI action */
+  --danger:#c2412d;
+  --stage:#dfe5e0;       /* around the board */
+  --shadow:0 6px 24px rgba(20,40,32,.16),0 1px 3px rgba(20,40,32,.12);
+  --f-display:"Baloo Chettan 2","Noto Sans Malayalam",system-ui,sans-serif;
+  --f-body:"Noto Sans Malayalam","Baloo Chettan 2",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --chrome:#1c2522;--chrome-2:#27322e;--ink:#e9efeb;--muted:#9fb0a9;--line:#34423d;
+  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;
+  --shadow:0 6px 24px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --chrome:#1c2522;--chrome-2:#27322e;--ink:#e9efeb;--muted:#9fb0a9;--line:#34423d;
+  --accent:#3fb592;--accent-ink:#06261d;--chalk:#f5c451;--danger:#ef7b66;--stage:#121916;
+  --shadow:0 6px 24px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.4);color-scheme:dark}
+html,body{height:100%}
+body{background:var(--stage);color:var(--ink);font-family:var(--f-body);overflow:hidden;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit}
+.app{display:flex;flex-direction:column;height:100%}
+.top{display:flex;align-items:center;gap:8px;padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));background:var(--chrome);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.2px;display:flex;align-items:center;gap:8px;margin-right:auto;white-space:nowrap}
+.brand i{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-style:normal;font-size:16px}
+.grp{display:flex;align-items:center;gap:2px;background:var(--chrome-2);border-radius:12px;padding:3px}
+.ib{min-width:40px;height:40px;border:0;background:transparent;border-radius:9px;display:grid;place-items:center;cursor:pointer;padding:0 8px}
+.ib:hover{background:var(--chrome)}
+.ib:focus-visible,.tool:focus-visible,.sw:focus-visible{outline:3px solid var(--chalk);outline-offset:1px}
+.ib svg,.tool svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib[disabled]{opacity:.35;cursor:default}
+.pg{font-variant-numeric:tabular-nums;font-weight:600;min-width:48px;text-align:center;font-size:14px}
+.ib.warn{background:var(--danger);color:#fff}
+.stage{position:relative;flex:1;min-height:0}
+canvas#board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.dock{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100% - 24px);z-index:5}
+.bar{display:flex;align-items:center;gap:4px;background:var(--chrome);border:1px solid var(--line);border-radius:18px;padding:6px;box-shadow:var(--shadow);flex-wrap:wrap;justify-content:center}
+.tool{width:52px;height:52px;border:0;background:transparent;border-radius:13px;display:grid;place-items:center;cursor:pointer;position:relative}
+.tool:hover{background:var(--chrome-2)}
+.tool[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tool.magic{color:#7a4c00;background:color-mix(in srgb,var(--chalk) 35%,transparent)}
+.tool.magic[aria-pressed="true"]{background:var(--chalk);color:#3a2600}
+.sep{width:1px;height:32px;background:var(--line);margin:0 4px}
+.sub{display:flex;align-items:center;gap:10px;background:var(--chrome);border:1px solid var(--line);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow);flex-wrap:wrap;justify-content:center}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--chrome),0 0 0 5px var(--accent)}
+.size{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.size input{width:120px;accent-color:var(--accent)}
+.dot{border-radius:50%;background:var(--ink);flex:none}
+.chip{border:1px solid var(--line);background:var(--chrome-2);border-radius:10px;height:38px;min-width:40px;padding:0 10px;cursor:pointer;display:grid;place-items:center}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.float{position:absolute;z-index:6;display:flex;gap:6px}
+.fbtn{border:0;border-radius:12px;padding:10px 14px;font-weight:600;font-family:var(--f-display);font-size:16px;cursor:pointer;box-shadow:var(--shadow);display:flex;gap:6px;align-items:center;background:var(--chrome);color:var(--ink);border:1px solid var(--line)}
+.fbtn.go{background:var(--chalk);color:#3a2600;border-color:transparent;animation:pop .25s ease-out}
+.fbtn.del{color:var(--danger)}
+@keyframes pop{from{transform:scale(.8);opacity:.3}to{transform:none;opacity:1}}
+textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashed var(--accent);border-radius:6px;outline:none;resize:none;overflow:hidden;font-family:"Baloo Chettan 2",sans-serif;line-height:1.25;padding:2px 4px;min-width:120px;-webkit-user-select:text;user-select:text}
+/* AI sheet */
+.sheet{position:absolute;z-index:8;top:12px;right:max(12px,env(safe-area-inset-right,0px));width:min(380px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--chrome);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-user-select:text;user-select:text}
+.sheet h2{margin:0;font-family:var(--f-display);font-size:20px;display:flex;align-items:center;gap:8px}
+.sheet h2 .x{margin-left:auto}
+.status{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;min-height:22px}
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(1turn)}}
+.wordrow{display:flex;gap:6px}
+.wordrow input{flex:1;min-width:0;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 12px;font-family:var(--f-display);font-size:20px}
+.btn{height:44px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:0 14px;cursor:pointer;font-family:var(--f-display);font-size:15px;white-space:nowrap}
+.btn.ghost{background:var(--chrome-2);color:var(--ink)}
+.cands{display:flex;flex-wrap:wrap;gap:6px}.cands:empty{display:none}
+.cands .chip{font-family:var(--f-display);font-size:18px;height:42px}
+.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pick{border:2px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#1d2a26}
+.pick:hover,.pick:focus-visible{border-color:var(--accent);outline:none}
+.pick img{width:100%;aspect-ratio:1;object-fit:contain}
+.pick span{font-size:12px;color:#5d6c66}
+.hint{font-size:13px;color:var(--muted);line-height:1.5;margin:0}
+.toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);color:var(--chrome);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
+.menu{position:absolute;z-index:9;background:var(--chrome);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:180px}
+.menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:15px}
+.menu button:hover,.menu button[aria-pressed="true"]{background:var(--chrome-2)}
+@media (max-width:560px){.tool{width:44px;height:44px}.brand span{display:none}.size input{width:90px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><i>അ</i><span>വിദ്യാർത്ഥി ബോർഡ്</span></div>
+    <div class="grp">
+      <button class="ib" id="undo" title="തിരികെ (Undo)" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+      <button class="ib" id="redo" title="വീണ്ടും (Redo)" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+    </div>
+    <div class="grp">
+      <button class="ib" id="prev" aria-label="മുൻ പേജ്"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+      <div class="pg" id="pg">1 / 1</div>
+      <button class="ib" id="next" aria-label="അടുത്ത പേജ്"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="ib" id="addpg" title="പുതിയ പേജ്" aria-label="പുതിയ പേജ്"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="grp">
+      <button class="ib" id="bgbtn" title="പശ്ചാത്തലം" aria-label="പശ്ചാത്തലം"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18"/></svg></button>
+      <button class="ib" id="clear" title="പേജ് മായ്ക്കുക" aria-label="പേജ് മായ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+      <button class="ib" id="export" title="ചിത്രമായി സേവ് ചെയ്യുക" aria-label="PNG ആയി സേവ് ചെയ്യുക"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
+      <button class="ib" id="full" title="ഫുൾസ്ക്രീൻ" aria-label="ഫുൾസ്ക്രീൻ"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <canvas id="board"></canvas>
+
+    <div class="dock">
+      <div class="sub" id="sub"></div>
+      <div class="bar" role="toolbar" aria-label="ടൂളുകൾ">
+        <button class="tool" data-tool="select" title="തിരഞ്ഞെടുക്കുക, നീക്കുക" aria-label="തിരഞ്ഞെടുക്കുക"><svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-3 6z"/></svg></button>
+        <button class="tool" data-tool="pen" title="പേന" aria-label="പേന"><svg viewBox="0 0 24 24"><path d="M4 20l4-1L19 8a2.1 2.1 0 0 0-3-3L5 16z"/><path d="M14 7l3 3"/></svg></button>
+        <button class="tool" data-tool="hl" title="ഹൈലൈറ്റർ" aria-label="ഹൈലൈറ്റർ"><svg viewBox="0 0 24 24"><path d="M9 15l-4 4h6l1-1"/><path d="M9 15l3 3 8-8-3-3z"/><path d="M3 21h18"/></svg></button>
+        <button class="tool" data-tool="eraser" title="ഇറേസർ" aria-label="ഇറേസർ"><svg viewBox="0 0 24 24"><path d="M7 20h13"/><path d="M5 15l9-9 5 5-8 8H8z"/><path d="M9 11l5 5"/></svg></button>
+        <button class="tool" data-tool="shape" title="ഷേപ്പുകൾ" aria-label="ഷേപ്പുകൾ"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="9" height="9" rx="1"/><circle cx="16" cy="8" r="5"/></svg></button>
+        <button class="tool" data-tool="text" title="ടെക്സ്റ്റ്" aria-label="ടെക്സ്റ്റ്"><svg viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg></button>
+        <span class="sep"></span>
+        <button class="tool magic" data-tool="magic" title="ചിത്രം: വാക്ക് എഴുതി വട്ടമിടുക" aria-label="ചിത്രം കൊണ്ടുവരിക"><svg viewBox="0 0 24 24"><path d="M5 19 15 9"/><path d="M14 4v2M19 9h2M17.5 5.5l1.4-1.4M12 2v0"/><path d="M18 13l.8 1.7L20.5 15l-1.7.8L18 17.5l-.8-1.7L15.5 15l1.7-.8z" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+'use strict';
+// ---------- constants ----------
+const COLORS = ['#1d2a26','#1f5fbf','#d1342b','#178a4c','#e07b00','#7b3fb0','#ffffff'];
+const HL_COLORS = ['#ffe14d','#7cf0a2','#7ad3ff','#ff9ccf','#ffb35c'];
+const SHAPES = [
+  ['rect','<rect x="4" y="6" width="16" height="12" rx="1"/>','ചതുരം'],
+  ['ellipse','<ellipse cx="12" cy="12" rx="8" ry="7"/>','വൃത്തം'],
+  ['tri','<path d="M12 4l9 16H3z"/>','ത്രികോണം'],
+  ['line','<path d="M4 20 20 4"/>','വര'],
+  ['arrow','<path d="M4 20 20 4M11 4h9v9"/>','അമ്പ്'],
+  ['star','<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>','നക്ഷത്രം'],
+];
+const BGS = [['plain','വെള്ള ബോർഡ്'],['grid','കള്ളി (ഗ്രിഡ്)'],['lines','നാലുവര കോപ്പി'],['chalk','കറുത്ത ബോർഡ് (ചോക്ക്)']];
+const TEXT_SIZES = [[28,'ചെറുത്'],[44,'ഇടത്തരം'],[72,'വലുത്']];
+
+// Small built-in picture library: works offline and without AI.
+const LIB = [
+ {ml:'ഹൃദയം',en:'heart',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M100 172C40 128 20 98 20 70a40 40 0 0 1 80-8 40 40 0 0 1 80 8c0 28-20 58-80 102z" fill="#e83b4a" stroke="#7a1420" stroke-width="5" stroke-linejoin="round"/><path d="M52 62a22 22 0 0 1 26-14" fill="none" stroke="#ff9aa4" stroke-width="9" stroke-linecap="round"/></svg>`},
+ {ml:'സൂര്യൻ',en:'sun',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g stroke="#e08a00" stroke-width="9" stroke-linecap="round"><path d="M100 14v26M100 160v26M14 100h26M160 100h26M39 39l18 18M143 143l18 18M161 39l-18 18M57 143l-18 18"/></g><circle cx="100" cy="100" r="46" fill="#ffc928" stroke="#e08a00" stroke-width="6"/><circle cx="84" cy="94" r="5" fill="#5a3300"/><circle cx="116" cy="94" r="5" fill="#5a3300"/><path d="M82 114q18 16 36 0" fill="none" stroke="#5a3300" stroke-width="5" stroke-linecap="round"/></svg>`},
+ {ml:'നക്ഷത്രം',en:'star',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="m100 18 24 50 55 8-40 38 10 55-49-27-49 27 10-55-40-38 55-8z" fill="#ffd23f" stroke="#c98a00" stroke-width="6" stroke-linejoin="round"/></svg>`},
+ {ml:'മരം',en:'tree',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect x="88" y="118" width="24" height="64" rx="4" fill="#8a5a2b" stroke="#4d2f12" stroke-width="5"/><circle cx="100" cy="78" r="50" fill="#3faa4f" stroke="#1e6b2b" stroke-width="5"/><circle cx="62" cy="104" r="30" fill="#3faa4f" stroke="#1e6b2b" stroke-width="5"/><circle cx="138" cy="104" r="30" fill="#3faa4f" stroke="#1e6b2b" stroke-width="5"/><circle cx="84" cy="64" r="6" fill="#d63a3a"/><circle cx="124" cy="92" r="6" fill="#d63a3a"/></svg>`},
+ {ml:'മീൻ',en:'fish',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M150 100 188 70v60z" fill="#ff8a3d" stroke="#a3480b" stroke-width="5" stroke-linejoin="round"/><ellipse cx="94" cy="100" rx="70" ry="44" fill="#ffa44f" stroke="#a3480b" stroke-width="5"/><circle cx="56" cy="90" r="8" fill="#2a1a10"/><path d="M90 70q14 30 0 60M114 72q12 28 0 56" fill="none" stroke="#a3480b" stroke-width="4"/></svg>`},
+ {ml:'ആപ്പിൾ',en:'apple',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M100 60c-30-18-74 0-70 50 4 46 36 74 56 70 8-2 10-6 14-6s6 4 14 6c20 4 52-24 56-70 4-50-40-68-70-50z" fill="#e3352f" stroke="#7d1210" stroke-width="5" stroke-linejoin="round"/><path d="M100 60c0-18 4-30 14-40" fill="none" stroke="#5a3a1a" stroke-width="7" stroke-linecap="round"/><path d="M106 40c14-14 34-12 40-6-12 14-28 14-40 6z" fill="#46a84b" stroke="#22652a" stroke-width="4"/></svg>`},
+ {ml:'വീട്',en:'house',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect x="40" y="92" width="120" height="86" fill="#ffe2a8" stroke="#7a4b14" stroke-width="5"/><path d="M24 98 100 30l76 68z" fill="#d6523a" stroke="#7a2412" stroke-width="5" stroke-linejoin="round"/><rect x="86" y="128" width="30" height="50" fill="#8a5a2b" stroke="#4d2f12" stroke-width="4"/><rect x="54" y="110" width="22" height="22" fill="#8fd3ff" stroke="#3b6f8f" stroke-width="4"/><rect x="128" y="110" width="22" height="22" fill="#8fd3ff" stroke="#3b6f8f" stroke-width="4"/></svg>`},
+ {ml:'പൂവ്',en:'flower',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M100 112v76" stroke="#2f8a3c" stroke-width="8"/><path d="M100 160c-24-2-36-18-38-30 18 0 32 10 38 30z" fill="#46a84b"/><g fill="#ff6fa8" stroke="#a3205a" stroke-width="4"><circle cx="100" cy="52" r="24"/><circle cx="138" cy="80" r="24"/><circle cx="124" cy="122" r="24"/><circle cx="76" cy="122" r="24"/><circle cx="62" cy="80" r="24"/></g><circle cx="100" cy="90" r="20" fill="#ffd23f" stroke="#c98a00" stroke-width="4"/></svg>`},
+ {ml:'ചന്ദ്രൻ',en:'moon',svg:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><path d="M128 24a78 78 0 1 0 48 132A64 64 0 0 1 128 24z" fill="#ffe37a" stroke="#b89300" stroke-width="5" stroke-linejoin="round"/><circle cx="82" cy="80" r="8" fill="#f0c94a"/><circle cx="70" cy="128" r="11" fill="#f0c94a"/></svg>`},
+];
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), cv = $('#board'), ctx = cv.getContext('2d');
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+const norm = s => (s||'').toString().trim().toLowerCase().normalize('NFC');
+const svgURL = svg => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+let toastT;
+function toast(msg, ms=2600){
+  let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); stage.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden=true, ms);
+}
+
+// ---------- state ----------
+const saved = store.get('vb-board-v1');
+let pages = saved?.pages?.length ? saved.pages : [{bg:'plain', objs:[]}];
+let cur = Math.min(saved?.cur||0, pages.length-1);
+const st = {
+  tool:'pen', color:COLORS[0], hlColor:HL_COLORS[0],
+  size:{pen:5, hl:24, eraser:36, shape:5}, shape:'rect', textSize:44,
+};
+const userLib = store.get('vb-lib-v1') || [];   // pictures this teacher already made with AI
+let hist = pages.map(p => ({undo:[], redo:[]}));
+const page = () => pages[cur];
+const objs = () => pages[cur].objs;
+
+function snapshot(){ return JSON.stringify(objs()); }
+function commit(before){ // before = snapshot taken before the change
+  const h = hist[cur]; h.undo.push(before); if(h.undo.length>80) h.undo.shift(); h.redo = [];
+  persist(); updateTop();
+}
+let persistT;
+function persist(){ clearTimeout(persistT); persistT = setTimeout(()=>store.set('vb-board-v1',{pages,cur}), 300); }
+
+// ---------- images cache ----------
+const imgCache = new Map();
+function getImg(src){
+  let im = imgCache.get(src);
+  if(!im){ im = new Image(); if(/^https?:/.test(src)) im.crossOrigin='anonymous'; im.onload = () => draw(); im.src = src; imgCache.set(src, im); }
+  return im;
+}
+
+// ---------- canvas sizing ----------
+let W=0,H=0,DPR=1;
+function resize(){
+  const r = stage.getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio||1, 2.5);
+  W = r.width; H = r.height; cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR); draw();
+}
+new ResizeObserver(resize).observe(stage);
+
+// ---------- drawing ----------
+function drawBg(c, bg, w, h){
+  c.fillStyle = bg==='chalk' ? '#20372f' : '#ffffff'; c.fillRect(0,0,w,h);
+  if(bg==='grid'){ c.strokeStyle='#e3ebf3'; c.lineWidth=1; c.beginPath();
+    for(let x=0;x<w;x+=40){c.moveTo(x+.5,0);c.lineTo(x+.5,h);} for(let y=0;y<h;y+=40){c.moveTo(0,y+.5);c.lineTo(w,y+.5);} c.stroke(); }
+  if(bg==='lines'){ // four-line copybook for letter practice
+    for(let y=60; y<h; y+=150){
+      c.lineWidth=1.5; c.setLineDash([]); c.strokeStyle='#9cc3e6';
+      c.beginPath(); c.moveTo(0,y); c.lineTo(w,y); c.moveTo(0,y+96); c.lineTo(w,y+96); c.stroke();
+      c.strokeStyle='#f0a3a3'; c.setLineDash([8,6]);
+      c.beginPath(); c.moveTo(0,y+32); c.lineTo(w,y+32); c.moveTo(0,y+64); c.lineTo(w,y+64); c.stroke(); c.setLineDash([]);
+    }
+  }
+}
+function strokePath(c, o){
+  const p = o.pts; if(!p.length) return;
+  c.strokeStyle = o.color; c.lineCap='round'; c.lineJoin='round';
+  c.globalAlpha = o.hl ? .38 : 1;
+  if(p.length===1){ c.fillStyle=o.color; c.beginPath(); c.arc(p[0][0],p[0][1],o.size/2,0,7); c.fill(); c.globalAlpha=1; return; }
+  const pressure = !o.hl && p.some(q=>q[2]!==.5);
+  if(pressure){ // variable width: draw segment by segment
+    for(let i=1;i<p.length;i++){ c.lineWidth = o.size*(.4+ (p[i][2]||.5)*1.2); c.beginPath(); c.moveTo(p[i-1][0],p[i-1][1]); c.lineTo(p[i][0],p[i][1]); c.stroke(); }
+  } else {
+    c.lineWidth = o.size; c.beginPath(); c.moveTo(p[0][0],p[0][1]);
+    for(let i=1;i<p.length-1;i++){ const mx=(p[i][0]+p[i+1][0])/2, my=(p[i][1]+p[i+1][1])/2; c.quadraticCurveTo(p[i][0],p[i][1],mx,my); }
+    const l=p[p.length-1]; c.lineTo(l[0],l[1]); c.stroke();
+  }
+  c.globalAlpha = 1;
+}
+function shapePath(c, o){
+  const {x1,y1,x2,y2} = o; const x=Math.min(x1,x2), y=Math.min(y1,y2), w=Math.abs(x2-x1), h=Math.abs(y2-y1);
+  c.beginPath();
+  if(o.kind==='rect') c.rect(x,y,w,h);
+  else if(o.kind==='ellipse') c.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2);
+  else if(o.kind==='tri'){ c.moveTo(x+w/2,y); c.lineTo(x+w,y+h); c.lineTo(x,y+h); c.closePath(); }
+  else if(o.kind==='line'||o.kind==='arrow'){ c.moveTo(x1,y1); c.lineTo(x2,y2);
+    if(o.kind==='arrow'){ const a=Math.atan2(y2-y1,x2-x1), L=Math.max(14,o.size*3.5);
+      c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a-.45),y2-L*Math.sin(a-.45)); c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a+.45),y2-L*Math.sin(a+.45)); } }
+  else if(o.kind==='star'){ const cx=x+w/2, cy=y+h/2; for(let i=0;i<10;i++){ const r = i%2? .4:1, a=-Math.PI/2+i*Math.PI/5; const px=cx+Math.cos(a)*w/2*r, py=cy+Math.sin(a)*h/2*r; i?c.lineTo(px,py):c.moveTo(px,py);} c.closePath(); }
+}
+function textFont(o){ return `600 ${o.size}px "Baloo Chettan 2","Noto Sans Malayalam",sans-serif`; }
+function drawObj(c, o){
+  if(o.type==='stroke') strokePath(c,o);
+  else if(o.type==='shape'){ c.strokeStyle=o.color; c.lineWidth=o.size; c.lineCap='round'; c.lineJoin='round'; shapePath(c,o); c.stroke(); }
+  else if(o.type==='text'){ c.fillStyle=o.color; c.font=textFont(o); c.textBaseline='top'; o.text.split('\n').forEach((ln,i)=>c.fillText(ln,o.x,o.y+i*o.size*1.25)); }
+  else if(o.type==='image'){ const im=getImg(o.src); if(im.complete && im.naturalWidth) c.drawImage(im,o.x,o.y,o.w,o.h); }
+}
+let live = null;       // object being drawn right now
+let sel = null;        // selected object
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  drawBg(ctx, page().bg, W, H);
+  for(const o of objs()) drawObj(ctx,o);
+  if(live){ if(live.magic){ ctx.save(); ctx.setLineDash([10,8]); drawObj(ctx,{...live,color:'#e0a000',size:4}); ctx.restore(); } else drawObj(ctx,live); }
+  if(sel && objs().includes(sel)){
+    const b = bbox(sel); ctx.save(); ctx.strokeStyle='#0f7a63'; ctx.lineWidth=2; ctx.setLineDash([6,5]);
+    ctx.strokeRect(b.x-6,b.y-6,b.w+12,b.h+12); ctx.setLineDash([]);
+    ctx.fillStyle='#ffffff'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(b.x+b.w+6,b.y+b.h+6,13,0,7); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  if(eraserAt){ ctx.save(); ctx.strokeStyle='rgba(120,120,120,.8)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(eraserAt[0],eraserAt[1],st.size.eraser/2,0,7); ctx.stroke(); ctx.restore(); }
+  placeFloats();
+}
+
+// ---------- geometry ----------
+function bbox(o){
+  if(o.type==='stroke'){ let a=1e9,b=1e9,c=-1e9,d=-1e9; for(const p of o.pts){a=Math.min(a,p[0]);b=Math.min(b,p[1]);c=Math.max(c,p[0]);d=Math.max(d,p[1]);} const r=o.size/2; return {x:a-r,y:b-r,w:c-a+2*r,h:d-b+2*r}; }
+  if(o.type==='shape') return {x:Math.min(o.x1,o.x2),y:Math.min(o.y1,o.y2),w:Math.abs(o.x2-o.x1),h:Math.abs(o.y2-o.y1)};
+  if(o.type==='text'){ ctx.font=textFont(o); const ls=o.text.split('\n'); return {x:o.x,y:o.y,w:Math.max(...ls.map(l=>ctx.measureText(l).width),10),h:ls.length*o.size*1.25}; }
+  return {x:o.x,y:o.y,w:o.w,h:o.h};
+}
+const inBox = (x,y,b,pad=0) => x>=b.x-pad && x<=b.x+b.w+pad && y>=b.y-pad && y<=b.y+b.h+pad;
+function segDist(px,py,ax,ay,bx,by){ const dx=bx-ax, dy=by-ay, l=dx*dx+dy*dy; let t=l?((px-ax)*dx+(py-ay)*dy)/l:0; t=Math.max(0,Math.min(1,t)); return Math.hypot(px-ax-t*dx, py-ay-t*dy); }
+function hit(o,x,y,tol=8){
+  if(o.type==='stroke'){ const p=o.pts, r=o.size/2+tol; if(p.length===1) return Math.hypot(x-p[0][0],y-p[0][1])<r; for(let i=1;i<p.length;i++) if(segDist(x,y,p[i-1][0],p[i-1][1],p[i][0],p[i][1])<r) return true; return false; }
+  if(o.type==='shape'){ if(o.kind==='line'||o.kind==='arrow') return segDist(x,y,o.x1,o.y1,o.x2,o.y2)<o.size/2+tol; return inBox(x,y,bbox(o),tol); }
+  return inBox(x,y,bbox(o),tol);
+}
+function topHit(x,y){ const a=objs(); for(let i=a.length-1;i>=0;i--) if(hit(a[i],x,y,10)) return a[i]; return null; }
+function pip(x,y,poly){ let inside=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const [xi,yi]=poly[i],[xj,yj]=poly[j]; if(((yi>y)!==(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside; } return inside; }
+function moveObj(o,dx,dy){
+  if(o.type==='stroke') o.pts.forEach(p=>{p[0]+=dx;p[1]+=dy;});
+  else if(o.type==='shape'){o.x1+=dx;o.x2+=dx;o.y1+=dy;o.y2+=dy;}
+  else {o.x+=dx;o.y+=dy;}
+}
+function scaleObj(o, orig, s){ // uniform scale from the top-left of the original box
+  const b = bbox(orig), ox=b.x, oy=b.y;
+  if(o.type==='stroke'){ o.pts = orig.pts.map(p=>[ox+(p[0]-ox)*s, oy+(p[1]-oy)*s, p[2]]); o.size = Math.max(1,orig.size*s); }
+  else if(o.type==='shape'){ ['x1','x2'].forEach(k=>o[k]=ox+(orig[k]-ox)*s); ['y1','y2'].forEach(k=>o[k]=oy+(orig[k]-oy)*s); }
+  else if(o.type==='text'){ o.size = Math.max(10, orig.size*s); }
+  else { o.w = Math.max(30, orig.w*s); o.h = Math.max(30, orig.h*s); }
+}
+// Eraser: cut strokes where the eraser passes; remove shapes and text it touches. Pictures stay (delete them with Select).
+function eraseAt(x,y){
+  const r = st.size.eraser/2; const a = objs(); let changed=false; const out=[];
+  for(const o of a){
+    if(o.type==='stroke'){
+      if(!inBox(x,y,bbox(o),r)){ out.push(o); continue; }
+      let seg=[], parts=[];
+      for(const p of o.pts){ if(Math.hypot(p[0]-x,p[1]-y) < r + o.size/2*.6){ if(seg.length) parts.push(seg); seg=[]; changed=true; } else seg.push(p); }
+      if(seg.length) parts.push(seg);
+      if(parts.length===1 && parts[0].length===o.pts.length){ out.push(o); continue; }
+      parts.forEach(pp=>out.push({...o, pts:pp}));
+    } else if(o.type!=='image' && hit(o,x,y,r)){ changed=true; }
+    else out.push(o);
+  }
+  if(changed){ page().objs = out; }
+  return changed;
+}
+
+// ---------- pointer handling ----------
+let ptr=null, start=null, before=null, drag=null, eraserAt=null, magicPending=null;
+const pos = e => { const r=cv.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+cv.addEventListener('pointerdown', e => {
+  if(ptr!==null) return; // ignore second finger / palm while drawing
+  closeMenus(); hideMagicChip();
+  ptr = e.pointerId; cv.setPointerCapture(ptr);
+  const [x,y] = pos(e); start=[x,y]; before = snapshot();
+  const t = st.tool, pr = e.pointerType==='pen' ? (e.pressure||.5) : .5;
+  if(t==='pen'||t==='magic') live = {type:'stroke', pts:[[x,y,pr]], color:st.color, size:st.size.pen, magic:t==='magic'};
+  else if(t==='hl') live = {type:'stroke', pts:[[x,y,.5]], color:st.hlColor, size:st.size.hl, hl:true};
+  else if(t==='shape') live = {type:'shape', kind:st.shape, x1:x,y1:y,x2:x,y2:y, color:st.color, size:st.size.shape};
+  else if(t==='eraser'){ eraserAt=[x,y]; eraseAt(x,y); draw(); }
+  else if(t==='text'){ ptr=null; openTextEditor(x,y); return; }
+  else if(t==='select'){
+    if(sel){ const b=bbox(sel); if(Math.hypot(x-(b.x+b.w+6), y-(b.y+b.h+6))<24){ drag={mode:'scale', orig:JSON.parse(JSON.stringify(sel)), b}; return; } }
+    const o = topHit(x,y); sel = o; drag = o ? {mode:'move', last:[x,y]} : null; draw();
+  }
+});
+cv.addEventListener('pointermove', e => {
+  if(st.tool==='eraser' && ptr===null){ eraserAt=pos(e); draw(); return; }
+  if(e.pointerId!==ptr) return;
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  const t = st.tool;
+  if(live?.type==='stroke'){ for(const ev of (evs.length?evs:[e])){ const [x,y]=pos(ev); const l=live.pts[live.pts.length-1]; if(Math.hypot(x-l[0],y-l[1])>1.2) live.pts.push([x,y, ev.pointerType==='pen'?(ev.pressure||.5):.5]); } draw(); }
+  else if(live?.type==='shape'){ const [x,y]=pos(e); live.x2=x; live.y2=y; draw(); }
+  else if(t==='eraser'){ const [x,y]=pos(e); eraserAt=[x,y]; eraseAt(x,y); draw(); }
+  else if(drag?.mode==='move' && sel){ const [x,y]=pos(e); moveObj(sel,x-drag.last[0],y-drag.last[1]); drag.last=[x,y]; draw(); }
+  else if(drag?.mode==='scale' && sel){ const [x,y]=pos(e); const b=drag.b; const s=Math.max(.15, Math.max((x-b.x)/Math.max(b.w,1),(y-b.y)/Math.max(b.h,1))); scaleObj(sel, drag.orig, s); draw(); }
+});
+function endPointer(e){
+  if(e.pointerId!==ptr) return; ptr=null;
+  const t = st.tool;
+  if(live){
+    const o = live; live = null;
+    if(o.type==='shape' && Math.hypot(o.x2-o.x1,o.y2-o.y1)<6){ draw(); return; }
+    if(o.magic){ delete o.magic; const inside = enclosed(o); if(inside.length) runMagic(inside); else toast('വാക്ക് എഴുതിയ ശേഷം അതിനെ ചുറ്റി വട്ടമിടൂ'); draw(); return; }
+    objs().push(o); commit(before);
+    if(t==='pen'){ const inside = isLoop(o) ? enclosed(o) : []; if(inside.length) showMagicChip(o, inside); }
+  } else if(t==='eraser'){ if(snapshot()!==before) commit(before); }
+  else if(t==='select' && drag){ if(snapshot()!==before) commit(before); drag=null; }
+  draw();
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('pointerleave', () => { if(st.tool==='eraser' && ptr===null){ eraserAt=null; draw(); } });
+
+// ---------- circle gesture ----------
+function isLoop(o){
+  const p=o.pts; if(p.length<14) return false; const b=bbox(o); if(b.w<50||b.h<35) return false;
+  return Math.hypot(p[0][0]-p[p.length-1][0], p[0][1]-p[p.length-1][1]) < Math.max(45, .3*Math.hypot(b.w,b.h));
+}
+function enclosed(loop){
+  const poly = loop.pts.map(p=>[p[0],p[1]]);
+  return objs().filter(o => o!==loop && o.type==='stroke' && !o.hl && o.pts.filter(p=>pip(p[0],p[1],poly)).length >= o.pts.length*.7);
+}
+let chipEl=null, selEl=null;
+function showMagicChip(loop, inside){
+  hideMagicChip(); magicPending = {loop, inside};
+  chipEl = document.createElement('div'); chipEl.className='float';
+  const b = bbox(loop);
+  chipEl.innerHTML = `<button class="fbtn go" type="button">✨ ചിത്രം കൊണ്ടുവരിക</button>`;
+  chipEl.style.left = Math.min(W-220, Math.max(8, b.x)) + 'px'; chipEl.style.top = Math.max(8, b.y-58) + 'px';
+  chipEl.firstChild.onclick = () => { const m = magicPending; hideMagicChip(); const before=snapshot(); page().objs = objs().filter(o=>o!==m.loop); commit(before); draw(); runMagic(m.inside); };
+  stage.appendChild(chipEl);
+  magicPending.timer = setTimeout(hideMagicChip, 7000);
+}
+function hideMagicChip(){ if(chipEl){ chipEl.remove(); chipEl=null; } if(magicPending){ clearTimeout(magicPending.timer); magicPending=null; } }
+
+// floating buttons for a selected object
+function placeFloats(){
+  if(!(sel && objs().includes(sel) && st.tool==='select')){ if(selEl){ selEl.remove(); selEl=null; } return; }
+  if(!selEl){
+    selEl = document.createElement('div'); selEl.className='float';
+    selEl.innerHTML = `<button class="fbtn" type="button" data-a="dup">പകർപ്പ്</button><button class="fbtn del" type="button" data-a="del">നീക്കം ചെയ്യുക</button>`;
+    selEl.onclick = ev => { const a = ev.target.closest('button')?.dataset.a; if(!a||!sel) return; const before=snapshot();
+      if(a==='del'){ page().objs = objs().filter(o=>o!==sel); sel=null; }
+      if(a==='dup'){ const c = JSON.parse(JSON.stringify(sel)); moveObj(c,30,30); objs().push(c); sel=c; }
+      commit(before); draw(); };
+    stage.appendChild(selEl);
+  }
+  const b = bbox(sel); selEl.style.left = Math.min(W-260, Math.max(8,b.x)) + 'px'; selEl.style.top = Math.max(8, b.y-62) + 'px';
+}
+
+// ---------- text ----------
+function openTextEditor(x,y){
+  const ta = document.createElement('textarea'); ta.className='txt'; ta.id='txt-input';
+  ta.style.left=x+'px'; ta.style.top=y+'px'; ta.style.fontSize=st.textSize+'px'; ta.style.color=st.color; ta.rows=1;
+  ta.setAttribute('aria-label','ടെക്സ്റ്റ് എഴുതുക');
+  stage.appendChild(ta); setTimeout(()=>ta.focus(),0);
+  const fit = () => { ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; ta.style.width=Math.min(W-x-8, Math.max(140, ta.value.split('\n').reduce((m,l)=>Math.max(m,l.length),0)*st.textSize*.62+30))+'px'; };
+  ta.addEventListener('input', fit); fit();
+  let done=false;
+  const finish = () => { if(done) return; done=true; const v = ta.value.replace(/\s+$/,''); ta.remove();
+    if(v){ const before=snapshot(); objs().push({type:'text', x:x+6, y:y+4, text:v, size:st.textSize, color:st.color}); commit(before); draw(); } };
+  ta.addEventListener('keydown', e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); finish(); } if(e.key==='Escape'){ ta.value=''; finish(); } });
+  ta.addEventListener('blur', finish);
+}
+
+const use = n => (window.claude?.use ? window.claude.use(n).catch(()=>null) : Promise.resolve(null));
+// ---------- picture from handwriting (free services, no key) ----------
+// 1) Google handwriting input (the same free service behind the Malayalam handwriting keyboard) reads the circled word.
+// 2) Wikipedia / Wikimedia Commons give real pictures for it. Both need internet; the small built-in library works offline.
+const isML = s => /[ഀ-ൿ]/.test(s||'');
+async function readHandwriting(strokes, lang){
+  const ink = strokes.map(o => [o.pts.map(p=>Math.round(p[0])), o.pts.map(p=>Math.round(p[1])), o.pts.map((_,i)=>i*12)]);
+  const body = {options:'enable_pre_space', requests:[{writing_guide:{writing_area_width:Math.round(W), writing_area_height:Math.round(H)}, ink, language:lang}]};
+  const r = await fetch('https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const j = await r.json();
+  if(j[0]!=='SUCCESS') throw new Error('hw');
+  return (j[1]?.[0]?.[1] || []).slice(0,5);
+}
+const wapi = (host, params) => fetch(`https://${host}/w/api.php?format=json&origin=*&${new URLSearchParams(params)}`).then(r=>r.json());
+async function findPictures(word){
+  const out = [], seen = new Set();
+  const add = (url, tag, w, h) => { if(url && !seen.has(url) && !/\.svg\.png$/i.test('') ){ seen.add(url); out.push({url, tag, w, h}); } };
+  let en = isML(word) ? '' : word;
+  const lang = isML(word) ? 'ml' : 'en';
+  try{
+    const j = await wapi(`${lang}.wikipedia.org`, {action:'query', titles:word, redirects:1, prop:'pageimages|langlinks', piprop:'thumbnail', pithumbsize:600, lllang:'en', lllimit:1});
+    for(const p of Object.values(j.query?.pages||{})){ if(p.thumbnail) add(p.thumbnail.source, 'വിക്കിപീഡിയ', p.thumbnail.width, p.thumbnail.height); if(p.langlinks?.[0]) en = p.langlinks[0]['*']; }
+  }catch{}
+  if(lang==='ml' && en){ try{
+    const j = await wapi('en.wikipedia.org', {action:'query', titles:en, redirects:1, prop:'pageimages', piprop:'thumbnail', pithumbsize:600});
+    for(const p of Object.values(j.query?.pages||{})) if(p.thumbnail) add(p.thumbnail.source, 'Wikipedia', p.thumbnail.width, p.thumbnail.height);
+  }catch{} }
+  try{
+    const j = await wapi('commons.wikimedia.org', {action:'query', generator:'search', gsrsearch:`${en||word} filetype:bitmap|drawing`, gsrnamespace:6, gsrlimit:10, prop:'imageinfo', iiprop:'url|mime', iiurlwidth:500});
+    Object.values(j.query?.pages||{}).sort((a,b)=>a.index-b.index).forEach(p=>{ const ii=p.imageinfo?.[0]; if(ii?.thumburl) add(ii.thumburl,'Commons', ii.thumbwidth, ii.thumbheight); });
+  }catch{}
+  return {pics: out.slice(0,10), en};
+}
+function libFind(word){
+  const w = norm(word); if(!w) return [];
+  return LIB.filter(it => norm(it.ml)===w || norm(it.en)===w);
+}
+
+let sheet=null, magicBox=null, searchId=0;
+function openSheet(){
+  if(sheet) return sheet;
+  sheet = document.createElement('section'); sheet.className='sheet'; sheet.setAttribute('aria-label','ചിത്രം കണ്ടെത്തുക');
+  sheet.innerHTML = `<h2>✨ ചിത്രം <button class="ib x" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></h2>
+    <div class="status" id="ai-status"></div>
+    <div class="cands" id="ai-cands"></div>
+    <div class="wordrow"><input id="ai-word" placeholder="വാക്ക് (ഉദാ: ഹൃദയം)" aria-label="വാക്ക്"><button class="btn" id="ai-go" type="button">തിരയുക</button></div>
+    <div class="picks" id="ai-picks"></div>
+    <p class="hint">ചിത്രം തൊട്ടാൽ ബോർഡിൽ വരും. വാക്ക് തെറ്റിയാൽ മുകളിലെ ഓപ്ഷനുകളിൽ ശരിയായത് തൊടുക, അല്ലെങ്കിൽ ടൈപ്പ് ചെയ്ത് "തിരയുക".</p>`;
+  stage.appendChild(sheet);
+  sheet.querySelector('.x').onclick = closeSheet;
+  sheet.querySelector('#ai-go').onclick = () => { const w = $('#ai-word').value.trim(); if(w) search(w); };
+  $('#ai-word').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); $('#ai-go').click(); } });
+  return sheet;
+}
+function closeSheet(){ searchId++; if(sheet){ sheet.remove(); sheet=null; } }
+function setStatus(html, busy){ const s=$('#ai-status'); if(s) s.innerHTML = (busy?'<span class="spin" aria-hidden="true"></span>':'') + html; }
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showCands(list, chosen){
+  const box=$('#ai-cands'); if(!box) return; box.innerHTML='';
+  list.forEach(w => { const b=document.createElement('button'); b.type='button'; b.className='chip'; b.textContent=w; b.setAttribute('aria-pressed', String(w===chosen)); b.onclick=()=>search(w); box.appendChild(b); });
+}
+function showPicks(items, word){
+  const box = $('#ai-picks'); if(!box) return; box.innerHTML='';
+  items.forEach(it => {
+    const b = document.createElement('button'); b.type='button'; b.className='pick';
+    const im = document.createElement('img'); im.alt = word||''; im.loading='lazy'; im.referrerPolicy='no-referrer'; im.src = it.url;
+    im.onerror = () => b.remove();
+    const sp = document.createElement('span'); sp.textContent = it.tag;
+    b.append(im, sp); b.onclick = () => placePicture(it.url, word, im.naturalWidth||it.w, im.naturalHeight||it.h); box.appendChild(b);
+  });
+}
+async function runMagic(strokes){
+  magicBox = renderBox(strokes);
+  openSheet(); $('#ai-word').value=''; showPicks([], ''); showCands([], '');
+  setStatus('എഴുതിയത് വായിക്കുന്നു…', true);
+  const id = ++searchId;
+  const [ml, en] = await Promise.all([readHandwriting(strokes,'ml').catch(()=>null), readHandwriting(strokes,'en').catch(()=>null)]);
+  if(id!==searchId) return;
+  if(!ml && !en){ setStatus('ഇന്റർനെറ്റ് കിട്ടുന്നില്ല. വാക്ക് ടൈപ്പ് ചെയ്ത് തിരയൂ.'); $('#ai-word').focus(); return; }
+  const cands = [...(ml||[]).slice(0,3), ...(en||[]).slice(0,2)].filter((v,i,a)=>v && a.indexOf(v)===i);
+  if(!cands.length){ setStatus('വായിക്കാൻ പറ്റിയില്ല. വാക്ക് ടൈപ്പ് ചെയ്യൂ.'); return; }
+  search(cands[0], cands);
+}
+let lastCands=[];
+async function search(word, cands){
+  if(cands) lastCands = cands;
+  showCands(lastCands, word); $('#ai-word').value = word;
+  const id = ++searchId;
+  const lib = libFind(word).map(it=>({url:svgURL(it.svg), tag:'ലൈബ്രറി', w:400, h:400}));
+  showPicks(lib, word);
+  setStatus(`<b>${escapeHTML(word)}</b>: ചിത്രങ്ങൾ തിരയുന്നു…`, true);
+  const {pics, en} = await findPictures(word);
+  if(id!==searchId) return;
+  const all = [...lib, ...pics];
+  showPicks(all, word);
+  setStatus(all.length ? `<b>${escapeHTML(word)}</b>${en && en!==word ? ' · '+escapeHTML(en) : ''} <button class="ib" id="ai-say" type="button" aria-label="ഉച്ചരിക്കുക" title="ഉച്ചരിക്കുക"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>`
+                       : `"${escapeHTML(word)}" എന്നതിന് ചിത്രം കിട്ടിയില്ല. മുകളിലെ മറ്റൊരു വാക്ക് തൊടുക, അല്ലെങ്കിൽ ഇംഗ്ലീഷിൽ ടൈപ്പ് ചെയ്യൂ.`);
+  const say = $('#ai-say'); if(say) say.onclick = () => speak(word);
+}
+function renderBox(strokes){
+  let a=1e9,b=1e9,c=-1e9,d=-1e9; strokes.forEach(o=>{const bb=bbox(o); a=Math.min(a,bb.x);b=Math.min(b,bb.y);c=Math.max(c,bb.x+bb.w);d=Math.max(d,bb.y+bb.h);});
+  return {x:a,y:b,w:c-a,h:d-b};
+}
+function speak(word){
+  try{ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(word); u.lang = isML(word) ? 'ml-IN' : 'en-IN'; speechSynthesis.speak(u); }catch{}
+}
+function placePicture(src, word, nw, nh){
+  const before = snapshot(); const b = magicBox || {x:W/2-100,y:H/2-100,w:0,h:0};
+  const ar = (nw && nh) ? nw/nh : 1;
+  const hgt = Math.min(Math.max(200, b.h*2.4), H*.6), wid = hgt*ar;
+  let x = b.x + b.w + 30, y = b.y + b.h/2 - hgt/2;
+  if(x + wid > W - 10) { x = Math.max(10, Math.min(W-wid-10, b.x)); y = b.y + b.h + 20; }
+  y = Math.max(10, Math.min(H - hgt - 90, y));
+  const o = {type:'image', x, y, w:wid, h:hgt, src, label:word||''};
+  objs().push(o); commit(before);
+  closeSheet(); setTool('select'); sel=o; draw();
+  toast('ചിത്രം വലിച്ചു നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ച് വലുതാക്കാം, ചെറുതാക്കാം.');
+}
+
+// ---------- toolbar UI ----------
+function setTool(t){
+  st.tool=t; if(t!=='select'){ sel=null; } eraserAt=null;
+  document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.tool===t)));
+  cv.style.cursor = t==='select' ? 'default' : t==='text' ? 'text' : 'crosshair';
+  renderSub(); draw();
+  if(t==='magic') toast('വാക്ക് എഴുതൂ, പിന്നെ ഈ ടൂൾ കൊണ്ട് അതിനെ ചുറ്റി വട്ടമിടൂ ✨', 3500);
+}
+function swatches(list, current, onPick){
+  return list.map(c=>`<button class="sw" type="button" style="background:${c}" data-c="${c}" aria-label="നിറം ${c}" aria-pressed="${c===current}"></button>`).join('');
+}
+function sizeCtl(key,min,max){
+  const v = st.size[key];
+  return `<label class="size"><span class="dot" id="sz-dot" style="width:${Math.min(v,28)}px;height:${Math.min(v,28)}px"></span><input id="sz-${key}" type="range" min="${min}" max="${max}" value="${v}" aria-label="വലിപ്പം"></label>`;
+}
+function renderSub(){
+  const s = $('#sub'), t = st.tool; let h='';
+  if(t==='pen'||t==='magic') h = swatches(COLORS, st.color) + sizeCtl('pen',2,30);
+  else if(t==='hl') h = swatches(HL_COLORS, st.hlColor) + sizeCtl('hl',10,60);
+  else if(t==='eraser') h = `<span class="size">ഇറേസർ വലിപ്പം</span>` + sizeCtl('eraser',12,120);
+  else if(t==='shape') h = SHAPES.map(([k,svg,name])=>`<button class="chip" type="button" data-shape="${k}" aria-label="${name}" title="${name}" aria-pressed="${k===st.shape}"><svg viewBox="0 0 24 24">${svg}</svg></button>`).join('') + swatches(COLORS, st.color) + sizeCtl('shape',2,24);
+  else if(t==='text') h = TEXT_SIZES.map(([v,n])=>`<button class="chip" type="button" data-ts="${v}" aria-pressed="${v===st.textSize}">${n}</button>`).join('') + swatches(COLORS, st.color);
+  else h = `<span class="size">വസ്തു തൊട്ട് തിരഞ്ഞെടുക്കൂ. വലിച്ച് നീക്കാം, മൂലയിൽ പിടിച്ച് വലുതാക്കാം.</span>`;
+  s.innerHTML = h; s.hidden = false;
+  s.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{ if(t==='hl') st.hlColor=b.dataset.c; else st.color=b.dataset.c; renderSub(); });
+  s.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{ st.shape=b.dataset.shape; renderSub(); });
+  s.querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{ st.textSize=+b.dataset.ts; renderSub(); });
+  s.querySelectorAll('input[type=range]').forEach(inp=>inp.oninput=()=>{ const k=inp.id.slice(3); st.size[k]=+inp.value; const d=$('#sz-dot'); d.style.width=d.style.height=Math.min(+inp.value,28)+'px'; });
+}
+document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+
+// ---------- top bar ----------
+function updateTop(){
+  $('#pg').textContent = `${cur+1} / ${pages.length}`;
+  $('#prev').disabled = cur===0; $('#next').disabled = cur===pages.length-1;
+  $('#undo').disabled = !hist[cur].undo.length; $('#redo').disabled = !hist[cur].redo.length;
+}
+function goPage(i){ cur=i; sel=null; hideMagicChip(); updateTop(); persist(); draw(); }
+$('#prev').onclick = () => cur>0 && goPage(cur-1);
+$('#next').onclick = () => cur<pages.length-1 && goPage(cur+1);
+$('#addpg').onclick = () => { pages.splice(cur+1,0,{bg:page().bg, objs:[]}); hist.splice(cur+1,0,{undo:[],redo:[]}); goPage(cur+1); toast(`പുതിയ പേജ് ${cur+1}`); };
+$('#undo').onclick = () => { const h=hist[cur]; if(!h.undo.length) return; h.redo.push(snapshot()); page().objs = JSON.parse(h.undo.pop()); sel=null; persist(); updateTop(); draw(); };
+$('#redo').onclick = () => { const h=hist[cur]; if(!h.redo.length) return; h.undo.push(snapshot()); page().objs = JSON.parse(h.redo.pop()); sel=null; persist(); updateTop(); draw(); };
+let clearArm=null;
+$('#clear').onclick = () => {
+  const b=$('#clear');
+  if(!clearArm){ b.classList.add('warn'); toast('മായ്ക്കാൻ ഒന്നുകൂടി അമർത്തൂ'); clearArm=setTimeout(()=>{ b.classList.remove('warn'); clearArm=null; },3000); return; }
+  clearTimeout(clearArm); clearArm=null; b.classList.remove('warn');
+  const before=snapshot(); page().objs=[]; sel=null; commit(before); draw(); toast('പേജ് മായ്ച്ചു. തിരികെ വേണമെങ്കിൽ Undo.');
+};
+let menuEl=null;
+function closeMenus(){ if(menuEl){ menuEl.remove(); menuEl=null; } }
+$('#bgbtn').onclick = e => {
+  e.stopPropagation(); if(menuEl){ closeMenus(); return; }
+  menuEl = document.createElement('div'); menuEl.className='menu';
+  menuEl.innerHTML = BGS.map(([k,n])=>`<button type="button" data-bg="${k}" aria-pressed="${page().bg===k}">${n}</button>`).join('');
+  const r = $('#bgbtn').getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  menuEl.style.top = '8px'; menuEl.style.left = Math.max(8, Math.min(sr.width-200, r.left - sr.left - 60)) + 'px';
+  menuEl.onclick = ev => { const k = ev.target.closest('button')?.dataset.bg; if(!k) return; page().bg=k;
+    if(k==='chalk' && st.color===COLORS[0]) st.color='#ffffff'; if(k!=='chalk' && st.color==='#ffffff') st.color=COLORS[0];
+    persist(); renderSub(); closeMenus(); draw(); };
+  stage.appendChild(menuEl);
+};
+document.addEventListener('pointerdown', e => { if(menuEl && !menuEl.contains(e.target) && e.target.closest('#bgbtn')===null) closeMenus(); });
+$('#full').onclick = () => { const d=document; try{ (d.fullscreenElement ? d.exitFullscreen() : d.documentElement.requestFullscreen()).catch(()=>toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല')); }catch{ toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല'); } };
+$('#export').onclick = async () => {
+  const oc = document.createElement('canvas'); oc.width=cv.width; oc.height=cv.height; const c2=oc.getContext('2d'); c2.scale(DPR,DPR);
+  drawBg(c2, page().bg, W, H); objs().forEach(o=>drawObj(c2,o));
+  let blob; try{ blob = await new Promise((r,j)=>{ try{ oc.toBlob(r,'image/png'); }catch(e){ j(e); } }); }catch{ toast('ഈ പേജിലെ ഒരു ചിത്രം കാരണം സേവ് ചെയ്യാൻ പറ്റുന്നില്ല'); return; }
+  const dl = await use('downloads');
+  if(!dl){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`board-page-${cur+1}.png`; document.body.appendChild(a); a.click(); a.remove(); }catch{ toast('സേവ് ചെയ്യാൻ പറ്റിയില്ല'); } return; }
+  try{ await dl.save({filename:`board-page-${cur+1}.png`, data:blob}); toast('സേവ് ചെയ്തു'); }catch(e){ if(e?.code!=='cancelled' && e?.code!=='declined') toast('സേവ് ചെയ്യാൻ പറ്റിയില്ല'); }
+};
+document.addEventListener('keydown', e => {
+  if(e.target.closest('input,textarea')) return;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); (e.shiftKey?$('#redo'):$('#undo')).click(); }
+  if((e.key==='Delete'||e.key==='Backspace') && sel){ const before=snapshot(); page().objs=objs().filter(o=>o!==sel); sel=null; commit(before); draw(); }
+});
+
+// ---------- first run: a sample page so the board shows what it does ----------
+if(!saved){
+  const p = pages[0];
+  p.objs.push({type:'text', x:40, y:28, text:'ഇന്നത്തെ വാക്ക്', size:44, color:'#1f5fbf'});
+  p.objs.push({type:'text', x:40, y:96, text:'ഹൃദയം', size:72, color:'#1d2a26'});
+  p.objs.push({type:'image', x:300, y:70, w:170, h:170, src:svgURL(LIB[0].svg), label:'ഹൃദയം'});
+  p.objs.push({type:'text', x:40, y:270, text:'ഉദാഹരണം: ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ', size:24, color:'#5d6c66'});
+}
+setTool('pen'); updateTop();
+document.fonts?.ready?.then(draw);
+window.claude?.hot?.snapshot?.(() => ({}));
+})();
+</script>
+
+<script>if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body>
+</html>
