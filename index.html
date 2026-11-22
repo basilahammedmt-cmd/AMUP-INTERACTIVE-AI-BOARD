@@ -12,7 +12,7 @@
 <title>Vidyarthi Board</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Chettan+2:wght@500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&family=Gayathri:wght@400;700&family=Anek+Malayalam:wght@400;600;700&family=Chilanka&family=Baloo+Chettan+2:wght@500;600;700&family=Noto+Sans+Malayalam:wght@400;500;600&display=swap">
 <style>
 /* Layout: one-screen classroom app. Slim top bar, the board fills the rest, a floating tool dock at the bottom (big touch targets for a smart panel). */
 :root{
@@ -28,8 +28,9 @@
   --stage:#dfe5e0;       /* around the board */
   --paperc:#f7faf8;--paperink:#1d2a26;
   --shadow:0 6px 24px rgba(20,40,32,.16),0 1px 3px rgba(20,40,32,.12);
-  --f-display:"Baloo Chettan 2","Noto Sans Malayalam",system-ui,sans-serif;
-  --f-body:"Noto Sans Malayalam","Baloo Chettan 2",system-ui,sans-serif;
+  --f-ml:"Manjari";
+  --f-display:var(--f-ml),"Noto Sans Malayalam",system-ui,sans-serif;
+  --f-body:var(--f-ml),"Noto Sans Malayalam",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --chrome:#1c2522;--chrome-2:#27322e;--ink:#e9efeb;--muted:#9fb0a9;--line:#34423d;
@@ -78,7 +79,7 @@ canvas#board{position:absolute;inset:0;width:100%;height:100%;touch-action:none;
 .fbtn.go{background:var(--chalk);color:#3a2600;border-color:transparent;animation:pop .25s ease-out}
 .fbtn.del{color:var(--danger)}
 @keyframes pop{from{transform:scale(.8);opacity:.3}to{transform:none;opacity:1}}
-textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashed var(--accent);border-radius:6px;outline:none;resize:none;overflow:hidden;font-family:"Baloo Chettan 2",sans-serif;line-height:1.25;padding:2px 4px;min-width:120px;-webkit-user-select:text;user-select:text}
+textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashed var(--accent);border-radius:6px;outline:none;resize:none;overflow:hidden;font-family:var(--f-ml),"Noto Sans Malayalam",sans-serif;font-weight:var(--f-w,700);line-height:1.25;padding:2px 4px;min-width:120px;-webkit-user-select:text;user-select:text}
 /* AI sheet */
 .sheet{position:absolute;z-index:8;top:12px;right:max(12px,env(safe-area-inset-right,0px));width:min(380px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--chrome);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-user-select:text;user-select:text}
 .sheet h2{margin:0;font-family:var(--f-display);font-size:20px;display:flex;align-items:center;gap:8px}
@@ -160,8 +161,9 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 .keybox a,.settings a{color:var(--accent)}
 .settings{right:12px;min-width:min(340px,calc(100% - 24px));gap:8px;padding:14px}
 .settings label{display:grid;gap:4px;font-size:14px}
-.settings input{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 10px}
+.settings input,.settings select{height:42px;border-radius:10px;border:1px solid var(--line);background:var(--stage);color:var(--ink);padding:0 10px}
 .settings .row{display:flex;gap:6px}
+.settings .btn:not(.ghost){background:var(--accent);color:var(--accent-ink)}
 @media (max-width:560px){.tool{width:44px;height:44px}.brand span{display:none}.lessbtn{font-size:15px;padding:0 10px}.size input{width:90px}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -330,7 +332,10 @@ function shapePath(c, o){
       c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a-.45),y2-L*Math.sin(a-.45)); c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a+.45),y2-L*Math.sin(a+.45)); } }
   else if(o.kind==='star'){ const cx=x+w/2, cy=y+h/2; for(let i=0;i<10;i++){ const r = i%2? .4:1, a=-Math.PI/2+i*Math.PI/5; const px=cx+Math.cos(a)*w/2*r, py=cy+Math.sin(a)*h/2*r; i?c.lineTo(px,py):c.moveTo(px,py);} c.closePath(); }
 }
-function textFont(o){ return `600 ${o.size}px "Baloo Chettan 2","Noto Sans Malayalam",sans-serif`; }
+const FONTS=[['Manjari',700,'മഞ്ജരി (വ്യക്തം, ഉരുണ്ടത്)'],['Gayathri',700,'ഗായത്രി'],['Anek Malayalam',600,'അനേക്'],['Noto Sans Malayalam',600,'നോട്ടോ'],['Baloo Chettan 2',600,'ബാലൂ ചേട്ടൻ (പഴയത്)'],['Chilanka',400,'ചിലങ്ക (കൈയക്ഷരം)']];
+function curFont(){ const n=store.get('vb-font')||'Manjari'; return FONTS.find(f=>f[0]===n)||FONTS[0]; }
+function applyFont(){ const [n,w]=curFont(); const r=document.documentElement.style; r.setProperty('--f-ml',`"${n}"`); r.setProperty('--f-w',w); document.fonts?.load?.(`${w} 40px "${n}"`).then(()=>draw()).catch(()=>{}); }
+function textFont(o){ const [n,w]=curFont(); return `${w} ${o.size}px "${n}","Noto Sans Malayalam",sans-serif`; }
 function drawObj(c, o){
   if(o.type==='stroke') strokePath(c,o);
   else if(o.type==='shape'){ c.strokeStyle=o.color; c.lineWidth=o.size; c.lineCap='round'; c.lineJoin='round'; shapePath(c,o); c.stroke(); }
@@ -740,12 +745,17 @@ function openSettings(){
   menuEl.innerHTML = `<b>⚙ സെറ്റിങ്സ്</b>
     <label>സൗജന്യ Gemini AI key<input id="gk" type="password" autocomplete="off" placeholder="ഇവിടെ key പേസ്റ്റ് ചെയ്യൂ"></label>
     <p class="note"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">ഇവിടെ നിന്ന് key എടുക്കാം</a> (Google അക്കൗണ്ട്, സൗജന്യം). ഈ ഫോണിൽ മാത്രം സൂക്ഷിക്കും.</p>
-    <div class="row"><button type="button" class="btn" id="gk-save">സേവ്</button><button type="button" class="btn ghost" id="gk-clear">മായ്ക്കുക</button></div>`;
+    <div class="row"><button type="button" class="btn" id="gk-save">സേവ്</button><button type="button" class="btn ghost" id="gk-clear">മായ്ക്കുക</button></div>
+    <label>മലയാളം ഫോണ്ട്<select id="fontsel">${FONTS.map(f=>`<option value="${f[0]}" style="font-family:'${f[0]}'">${f[2]}</option>`).join('')}</select></label>
+    <p class="note" id="fontprev" style="font-size:22px;margin:4px 0 0">അമ്മ ആന പൂവ് — Abc 123</p>`;
   menuEl.style.top='8px'; menuEl.style.right='12px';
   stage.appendChild(menuEl);
   $('#gk').value = geminiKey();
   $('#gk-save').onclick = () => { store.set('vb-gemini-key', $('#gk').value.trim()); aiCache.clear(); closeMenus(); toast($('#gk')?.value?'സേവ് ചെയ്തു':'സേവ് ചെയ്തു'); };
   $('#gk-clear').onclick = () => { store.set('vb-gemini-key',''); $('#gk').value=''; };
+  const fs=$('#fontsel'), fp=$('#fontprev'); fs.value=curFont()[0];
+  const prev=()=>{ const f=curFont(); fp.style.fontFamily=`"${f[0]}","Noto Sans Malayalam",sans-serif`; fp.style.fontWeight=f[1]; };
+  prev(); fs.onchange=()=>{ store.set('vb-font',fs.value); applyFont(); prev(); };
 }
 
 function renderBox(strokes){
@@ -929,6 +939,7 @@ if(!saved){
   p.objs.push({type:'text', x:40, y:270, text:'ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ: AI സഹായം, ചിത്രം, MCQ', size:26, color:'#cfe8dc'});
 }
 setTool('pen'); updateTop();
+applyFont();
 document.fonts?.ready?.then(draw);
 window.claude?.hot?.snapshot?.(() => ({}));
 })();
