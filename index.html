@@ -262,7 +262,9 @@ let pages = saved?.pages?.length ? saved.pages : [{bg:'chalk', objs:[]}];
 // remove the old sample content (ഇന്നത്തെ വാക്ക് / ഹൃദയം / help line) from boards saved before
 { const SAMPLE=['ഇന്നത്തെ വാക്ക്','ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ: AI സഹായം, ചിത്രം, MCQ'];
   const p0=pages[0]; if(p0?.objs){ const had=p0.objs.some(o=>o.type==='text'&&SAMPLE.includes(o.text));
-    if(had) p0.objs=p0.objs.filter(o=>!(o.type==='text'&&(SAMPLE.includes(o.text)||(o.text==='ഹൃദയം'&&o.x===40&&o.y===96)))&&!(o.type==='image'&&o.label==='ഹൃദയം'&&o.y===70)); } }
+    if(had) p0.objs=p0.objs.filter(o=>!(o.type==='text'&&(SAMPLE.includes(o.text)||(o.text==='ഹൃദയം'&&o.x===40&&o.y===96)))); }
+  // the sample heart picture: remove it once, wherever it was moved
+  if(!store.get('vb-clean-2')){ pages.forEach(pg=>{ if(pg.objs) pg.objs=pg.objs.filter(o=>!(o.type==='image'&&o.label==='ഹൃദയം'&&String(o.src).startsWith('data:image/svg'))); }); store.set('vb-clean-2',1); if(saved) store.set('vb-board-v1',{...saved,pages}); } }
 let cur = Math.min(saved?.cur||0, pages.length-1);
 const st = {
   tool:'pen', color: (saved ? COLORS[0] : '#ffffff'), hlColor:HL_COLORS[0],
@@ -345,7 +347,7 @@ function drawObj(c, o){
   if(o.type==='stroke') strokePath(c,o);
   else if(o.type==='shape'){ c.strokeStyle=o.color; c.lineWidth=o.size; c.lineCap='round'; c.lineJoin='round'; shapePath(c,o); c.stroke(); }
   else if(o.type==='text'){ c.fillStyle=o.color; c.font=textFont(o); c.textBaseline='top'; o.text.split('\n').forEach((ln,i)=>c.fillText(ln,o.x,o.y+i*o.size*1.25)); }
-  else if(o.type==='image'){ const im=getImg(o.src); if(im.complete && im.naturalWidth) c.drawImage(im,o.x,o.y,o.w,o.h); }
+  else if(o.type==='image'){ const im=getImg(o.src); if(im.complete && im.naturalWidth){ if(!String(o.src).startsWith('data:')){ c.save(); c.fillStyle='#ffffff'; c.beginPath(); c.roundRect?c.roundRect(o.x-6,o.y-6,o.w+12,o.h+12,12):c.rect(o.x-6,o.y-6,o.w+12,o.h+12); c.fill(); c.restore(); } c.drawImage(im,o.x,o.y,o.w,o.h); } }
 }
 let live = null;       // object being drawn right now
 let sel = null;        // selected object
@@ -403,7 +405,7 @@ function eraseAt(x,y){
       if(seg.length) parts.push(seg);
       if(parts.length===1 && parts[0].length===o.pts.length){ out.push(o); continue; }
       parts.forEach(pp=>out.push({...o, pts:pp}));
-    } else if(o.type!=='image' && hit(o,x,y,r)){ changed=true; }
+    } else if(hit(o,x,y,r)){ changed=true; }
     else out.push(o);
   }
   if(changed){ page().objs = out; }
