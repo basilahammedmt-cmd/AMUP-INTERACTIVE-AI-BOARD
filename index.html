@@ -28,7 +28,7 @@
   --stage:#dfe5e0;       /* around the board */
   --paperc:#f7faf8;--paperink:#1d2a26;
   --shadow:0 6px 24px rgba(20,40,32,.16),0 1px 3px rgba(20,40,32,.12);
-  --f-ml:"Manjari";
+  --f-ml:"Noto Sans Malayalam";
   --f-display:var(--f-ml),"Noto Sans Malayalam",system-ui,sans-serif;
   --f-body:var(--f-ml),"Noto Sans Malayalam",system-ui,sans-serif;
 }
@@ -332,8 +332,8 @@ function shapePath(c, o){
       c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a-.45),y2-L*Math.sin(a-.45)); c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a+.45),y2-L*Math.sin(a+.45)); } }
   else if(o.kind==='star'){ const cx=x+w/2, cy=y+h/2; for(let i=0;i<10;i++){ const r = i%2? .4:1, a=-Math.PI/2+i*Math.PI/5; const px=cx+Math.cos(a)*w/2*r, py=cy+Math.sin(a)*h/2*r; i?c.lineTo(px,py):c.moveTo(px,py);} c.closePath(); }
 }
-const FONTS=[['Manjari',700,'മഞ്ജരി (വ്യക്തം, ഉരുണ്ടത്)'],['Gayathri',700,'ഗായത്രി'],['Anek Malayalam',600,'അനേക്'],['Noto Sans Malayalam',600,'നോട്ടോ'],['Baloo Chettan 2',600,'ബാലൂ ചേട്ടൻ (പഴയത്)'],['Chilanka',400,'ചിലങ്ക (കൈയക്ഷരം)']];
-function curFont(){ const n=store.get('vb-font')||'Manjari'; return FONTS.find(f=>f[0]===n)||FONTS[0]; }
+const FONTS=[['Noto Sans Malayalam',600,'നോട്ടോ സാൻസ്'],['Manjari',700,'മഞ്ജരി (ഉരുണ്ടത്)'],['Gayathri',700,'ഗായത്രി'],['Anek Malayalam',600,'അനേക്'],['Baloo Chettan 2',600,'ബാലൂ ചേട്ടൻ (പഴയത്)'],['Chilanka',400,'ചിലങ്ക (കൈയക്ഷരം)']];
+function curFont(){ const n=store.get('vb-font')||'Noto Sans Malayalam'; return FONTS.find(f=>f[0]===n)||FONTS[0]; }
 function applyFont(){ const [n,w]=curFont(); const r=document.documentElement.style; r.setProperty('--f-ml',`"${n}"`); r.setProperty('--f-w',w); document.fonts?.load?.(`${w} 40px "${n}"`).then(()=>draw()).catch(()=>{}); }
 function textFont(o){ const [n,w]=curFont(); return `${w} ${o.size}px "${n}","Noto Sans Malayalam",sans-serif`; }
 function drawObj(c, o){
@@ -935,7 +935,7 @@ if(!saved){
   const p = pages[0];
   p.objs.push({type:'text', x:40, y:28, text:'ഇന്നത്തെ വാക്ക്', size:44, color:'#ffe066'});
   p.objs.push({type:'text', x:40, y:96, text:'ഹൃദയം', size:72, color:'#ffffff'});
-  p.objs.push({type:'image', x:300, y:70, w:170, h:170, src:svgURL(LIB[0].svg), label:'ഹൃദയം'});
+  p.objs.push({type:'image', x:340, y:70, w:170, h:170, src:svgURL(LIB[0].svg), label:'ഹൃദയം'});
   p.objs.push({type:'text', x:40, y:270, text:'ഒരു വാക്ക് എഴുതി ✨ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ: AI സഹായം, ചിത്രം, MCQ', size:26, color:'#cfe8dc'});
 }
 setTool('pen'); updateTop();
