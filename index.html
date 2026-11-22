@@ -1042,6 +1042,6 @@ window.claude?.hot?.snapshot?.(() => ({}));
 })();
 </script>
 
-<script>if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+<script>if('serviceWorker' in navigator && location.protocol==='https:'){const had=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!window.__swr){window.__swr=1;location.reload();}});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}</script>
 </body>
 </html>
