@@ -189,6 +189,7 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
       <button class="ib" id="export" title="ചിത്രമായി സേവ് ചെയ്യുക" aria-label="PNG ആയി സേവ് ചെയ്യുക"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>
       <button class="ib" id="settings" title="സെറ്റിങ്സ്" aria-label="സെറ്റിങ്സ്"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       <button class="ib" id="full" title="ഫുൾസ്ക്രീൻ" aria-label="ഫുൾസ്ക്രീൻ"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="ib" id="quit" title="ബോർഡ് അടയ്ക്കുക" aria-label="ബോർഡ് അടയ്ക്കുക" style="background:#d62828;color:#fff;margin-left:6px"><svg viewBox="0 0 24 24" style="stroke:#fff"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
   </header>
 
@@ -865,6 +866,22 @@ $('#bgbtn').onclick = e => {
   stage.appendChild(menuEl);
 };
 document.addEventListener('pointerdown', e => { if(menuEl && !menuEl.contains(e.target) && e.target.closest('#bgbtn,#settings')===null) closeMenus(); });
+// close the board: save, leave fullscreen, then close the tab/app; if the browser refuses, go back or show a closed screen
+$('#quit').onclick = async () => {
+  try{ store.set('vb-board-v1',{pages,cur}); }catch{}
+  try{ if(document.fullscreenElement) await document.exitFullscreen(); }catch{}
+  window.close();
+  setTimeout(() => {
+    if(history.length > 1){ history.back(); setTimeout(showClosed, 400); } else showClosed();
+  }, 250);
+};
+function showClosed(){
+  if(document.hidden || $('#closed')) return;
+  const d=document.createElement('div'); d.id='closed';
+  d.style.cssText='position:fixed;inset:0;z-index:99;background:#1d3b30;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:var(--f-display);text-align:center;padding:20px';
+  d.innerHTML='<div style="font-size:28px;font-weight:700">ബോർഡ് അടച്ചു</div><div style="font-size:17px;opacity:.85">എല്ലാം സേവ് ആയിട്ടുണ്ട്. ഇനി ഫോണിലെ ഹോം ബട്ടൺ അമർത്താം.</div><button type="button" class="btn" style="font-size:18px;height:50px">വീണ്ടും തുറക്കുക</button>';
+  d.querySelector('button').onclick=()=>d.remove(); document.body.appendChild(d);
+}
 $('#full').onclick = () => { const d=document; try{ (d.fullscreenElement ? d.exitFullscreen() : d.documentElement.requestFullscreen()).catch(()=>toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല')); }catch{ toast('ഫുൾസ്ക്രീൻ ഇവിടെ ലഭ്യമല്ല'); } };
 $('#export').onclick = async () => {
   const oc = document.createElement('canvas'); oc.width=cv.width; oc.height=cv.height; const c2=oc.getContext('2d'); c2.scale(DPR,DPR);
