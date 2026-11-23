@@ -521,9 +521,10 @@ function placeFloats(){
   if(!(sel && objs().includes(sel) && st.tool==='select')){ if(selEl){ selEl.remove(); selEl=null; } return; }
   if(!selEl){
     selEl = document.createElement('div'); selEl.className='float';
-    selEl.innerHTML = `<button class="fbtn" type="button" data-a="fit">⛶ സ്ക്രീൻ മുഴുവൻ</button><button class="fbtn" type="button" data-a="side">◨ വശത്തേക്ക്</button><button class="fbtn" type="button" data-a="dup">പകർപ്പ്</button><button class="fbtn del" type="button" data-a="del">നീക്കം ചെയ്യുക</button>`;
+    selEl.innerHTML = `<button class="fbtn" type="button" data-a="fit">⛶ സ്ക്രീൻ മുഴുവൻ</button><button class="fbtn" type="button" data-a="side">◨ വശത്തേക്ക്</button><button class="fbtn" type="button" data-a="cut">✂ പശ്ചാത്തലം കളയുക</button><button class="fbtn" type="button" data-a="dup">പകർപ്പ്</button><button class="fbtn del" type="button" data-a="del">നീക്കം ചെയ്യുക</button>`;
     selEl.onclick = ev => { const a = ev.target.closest('button')?.dataset.a; if(!a||!sel) return; const before=snapshot();
       if(a==='del'){ page().objs = objs().filter(o=>o!==sel); sel=null; }
+      if(a==='cut'){ cutBackground(sel); return; }
       if(a==='fit'||a==='side'){ const orig=JSON.parse(JSON.stringify(sel)), b=bbox(orig);
         const mw = a==='fit' ? W-60 : W*0.42, mh = H-150;
         scaleObj(sel, orig, Math.min(mw/Math.max(b.w,1), mh/Math.max(b.h,1)));
@@ -532,6 +533,7 @@ function placeFloats(){
       commit(before); draw(); };
     stage.appendChild(selEl);
   }
+  const cb = selEl.querySelector('[data-a=cut]'); if(cb) cb.hidden = !(sel.type==='image' && !sel.nobg);
   const b = bbox(sel); selEl.style.left = Math.min(W-560, Math.max(8,b.x)) + 'px'; selEl.style.top = (b.y-62 >= 8 ? b.y-62 : Math.min(H-150, b.y+b.h+16)) + 'px';
 }
 
@@ -631,10 +633,17 @@ async function runConvert(strokes){
   const replace = txt => {
     txt = (txt||'').trim(); if(!txt){ inp.focus(); return; }
     const before = snapshot(); const color = strokes[0]?.color || st.color;
-    const size = Math.round(Math.max(40, Math.min(140, box.h*0.9)));
-    page().objs = objs().filter(o=>!strokes.includes(o));
-    objs().push({type:'text', x:box.x, y:box.y + Math.max(0,(box.h - size*1.25)/2), text:txt, size, color});
-    commit(before); closePop(); draw();
+    // size it like the handwriting, but never wider than the board; long sentences wrap
+    let size = Math.round(Math.max(32, Math.min(110, box.h*0.8)));
+    const x = Math.max(10, Math.min(box.x, W*0.6)), maxW = W - x - 20;
+    const o = {type:'text', x, y:0, text:txt, size, color};
+    while(size > 28 && bbox(o).w > Math.max(maxW, 200)){ size -= 4; o.size = size; }
+    if(bbox(o).w > maxW) o.text = wrapForBoard(txt, size, maxW);
+    o.y = Math.max(10, Math.min(H - bbox(o).h - 90, box.y + Math.max(0,(box.h - bbox(o).h)/2)));
+    page().objs = objs().filter(q=>!strokes.includes(q));
+    objs().push(o);
+    commit(before); closePop(); setTool('select'); sel=o; draw();
+    toast('വലിച്ച് നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ചോ രണ്ടു വിരൽ കൊണ്ടോ വലുതാക്കാം, ചെറുതാക്കാം.', 4000);
   };
   const cbox = popEl.querySelector('.cands');
   cands.forEach(w=>{ const c=document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=w; c.onclick=()=>replace(w); cbox.appendChild(c); });
@@ -838,6 +847,7 @@ function openSettings(){
     <label>സൗജന്യ Gemini AI key<input id="gk" type="password" autocomplete="off" placeholder="ഇവിടെ key പേസ്റ്റ് ചെയ്യൂ"></label>
     <p class="note"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">ഇവിടെ നിന്ന് key എടുക്കാം</a> (Google അക്കൗണ്ട്, സൗജന്യം). ഈ ഫോണിൽ മാത്രം സൂക്ഷിക്കും.</p>
     <div class="row"><button type="button" class="btn" id="gk-save">സേവ്</button><button type="button" class="btn ghost" id="gk-clear">മായ്ക്കുക</button></div>
+    <label class="row" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="autocut" style="width:22px;height:22px">AI ചിത്രങ്ങളുടെ പശ്ചാത്തലം തനിയെ കളയുക</label>
     <label>മലയാളം ഫോണ്ട്<select id="fontsel">${FONTS.map(f=>`<option value="${f[0]}" style="font-family:'${f[0]}'">${f[2]}</option>`).join('')}</select></label>
     <p class="note" id="fontprev" style="font-size:22px;margin:4px 0 0">അമ്മ ആന പൂവ് — Abc 123</p>`;
   menuEl.style.top='8px'; menuEl.style.right='12px';
@@ -845,6 +855,7 @@ function openSettings(){
   $('#gk').value = geminiKey();
   $('#gk-save').onclick = () => { store.set('vb-gemini-key', $('#gk').value.trim()); aiCache.clear(); closeMenus(); toast($('#gk')?.value?'സേവ് ചെയ്തു':'സേവ് ചെയ്തു'); };
   $('#gk-clear').onclick = () => { store.set('vb-gemini-key',''); $('#gk').value=''; };
+  const ac=$('#autocut'); ac.checked=autoCut(); ac.onchange=()=>store.set('vb-autocut', ac.checked);
   const fs=$('#fontsel'), fp=$('#fontprev'); fs.value=curFont()[0];
   const prev=()=>{ const f=curFont(); fp.style.fontFamily=`"${f[0]}","Noto Sans Malayalam",sans-serif`; fp.style.fontWeight=f[1]; };
   prev(); fs.onchange=()=>{ store.set('vb-font',fs.value); applyFont(); prev(); };
@@ -857,6 +868,50 @@ function renderBox(strokes){
 function speak(word){
   try{ speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(word); u.lang = isML(word) ? 'ml-IN' : 'en-IN'; speechSynthesis.speak(u); }catch{}
 }
+// ---------- remove a picture's background (free, runs on the phone itself) ----------
+// AI model (@imgly/background-removal, ~40 MB, downloaded once and cached by the browser); plain-colour backgrounds fall back to a flood fill.
+const BGR = { mod: window.BGR_MOD || './vendor/bgr.mjs', data: window.BGR_DATA };
+let bgrLib = null;
+const autoCut = () => store.get('vb-autocut') !== false;
+function loadImgEl(src){ return new Promise((ok,no)=>{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>ok(im); im.onerror=no; im.src=src; }); }
+async function toSmallURL(srcBlobOrImg){
+  const im = srcBlobOrImg instanceof Blob ? await createImageBitmap(srcBlobOrImg) : srcBlobOrImg;
+  const k = Math.min(1, 800/Math.max(im.width, im.height)); const c=document.createElement('canvas');
+  c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  const webp=c.toDataURL('image/webp',0.85); return webp.startsWith('data:image/webp') ? webp : c.toDataURL('image/png');
+}
+// fallback: clear a plain background by flood-filling from the edges
+async function floodCut(src){
+  const im = await loadImgEl(src); const k=Math.min(1,800/Math.max(im.naturalWidth,im.naturalHeight));
+  const c=document.createElement('canvas'); c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k);
+  const g=c.getContext('2d'); g.drawImage(im,0,0,c.width,c.height); const W2=c.width,H2=c.height; const id=g.getImageData(0,0,W2,H2), d=id.data;
+  const edge=[]; for(let x=0;x<W2;x+=4){ edge.push((0*W2+x)*4, ((H2-1)*W2+x)*4); } for(let y=0;y<H2;y+=4){ edge.push((y*W2)*4, (y*W2+W2-1)*4); }
+  const avg=[0,1,2].map(j=>edge.reduce((s,i)=>s+d[i+j],0)/edge.length);
+  const near=i=>Math.abs(d[i]-avg[0])+Math.abs(d[i+1]-avg[1])+Math.abs(d[i+2]-avg[2])<60;
+  if(edge.filter(near).length < edge.length*0.8) throw new Error('busy background');
+  const seen=new Uint8Array(W2*H2), st=[]; for(let x=0;x<W2;x++){ st.push(x, (H2-1)*W2+x); } for(let y=0;y<H2;y++){ st.push(y*W2, y*W2+W2-1); }
+  while(st.length){ const p=st.pop(); if(seen[p]) continue; seen[p]=1; const i=p*4; if(!near(i)) continue; d[i+3]=0; const x=p%W2;
+    if(x>0) st.push(p-1); if(x<W2-1) st.push(p+1); if(p>=W2) st.push(p-W2); if(p<W2*(H2-1)) st.push(p+W2); }
+  g.putImageData(id,0,0); return toSmallURL(c);
+}
+async function cutBackground(o){
+  if(!o || o.type!=='image' || o._busy) return; o._busy=true;
+  toast('പശ്ചാത്തലം മാറ്റുന്നു… ആദ്യ തവണ AI മോഡൽ എടുക്കാൻ കുറച്ചു സമയം വേണം.', 8000);
+  let out=null;
+  try{
+    bgrLib = bgrLib || await import(BGR.mod);
+    const blob = await (await fetch(o.src)).blob();
+    let last=-1;
+    const res = await bgrLib.removeBackground(blob, {model:'small', publicPath:BGR.data, output:{format:'image/png'},
+      progress:(key,cur,total)=>{ if(/fetch/.test(key) && total){ const pc=Math.round(cur/total*100); if(pc>=last+10){ last=pc; toast(`AI മോഡൽ എടുക്കുന്നു… ${pc}%`, 4000); } } }});
+    out = await toSmallURL(res);
+  }catch(e){ console.warn('AI cut failed', e); try{ out = await floodCut(o.src); }catch(e2){ console.warn('flood cut failed', e2); } }
+  delete o._busy;
+  if(!out){ toast('ഈ ചിത്രത്തിന്റെ പശ്ചാത്തലം മാറ്റാൻ പറ്റിയില്ല.'); return; }
+  if(!objs().includes(o)) return;
+  const before=snapshot(); o.src=out; o.nobg=true; commit(before); draw();
+  toast('പശ്ചാത്തലം മാറ്റി. ഇഷ്ടമായില്ലെങ്കിൽ Undo അമർത്തൂ.');
+}
 function placePicture(src, word, nw, nh){
   const before = snapshot(); const b = magicBox || {x:W/2-100,y:H/2-100,w:0,h:0};
   const ar = (nw && nh) ? nw/nh : 1;
@@ -868,6 +923,7 @@ function placePicture(src, word, nw, nh){
   objs().push(o); commit(before);
   closeSheet(); setTool('select'); sel=o; draw();
   toast('ചിത്രം വലിച്ചു നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ച് വലുതാക്കാം, ചെറുതാക്കാം.');
+  if(autoCut() && !String(src).startsWith('data:')) cutBackground(o);
 }
 
 // ---------- toolbar UI ----------
