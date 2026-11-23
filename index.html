@@ -122,6 +122,7 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 .unit{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--stage);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:16px;line-height:1.4}
 .unit:hover{border-color:var(--accent)}
 .para{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--stage)}
+.para.tt{border-left:5px solid #2e8b57}
 .para p{margin:0 0 8px;font-size:16px;line-height:1.6;white-space:pre-line}
 .para .acts{display:flex;gap:6px;flex-wrap:wrap}
 .para .acts button{height:36px;border-radius:9px;border:1px solid var(--line);background:var(--chrome);padding:0 10px;cursor:pointer;font-size:14px}
@@ -801,7 +802,8 @@ async function wikiSummary(word){
   return {title:p.title, extract:p.extract, thumb:p.thumbnail?.source, w:p.thumbnail?.width, h:p.thumbnail?.height};
 }
 async function aiHelp(word){
-  const k = word+'|'+prefs.lang; if(aiCache.has(k)) return aiCache.get(k);
+  const k = word+'|'+prefs.lang+'|'+(lessonUnit?lessonUnit.subj+lessonUnit.unit:''); if(aiCache.has(k)) return aiCache.get(k);
+  const tt = await ttContext(word).catch(()=> '');
   const prompt = `You help a primary school teacher in Kerala, India teach Class 4 children (age 9) on a classroom board.
 Topic word: "${word}".
 Write everything in ${langName()}${prefs.lang==='ml'?' (simple Kerala classroom Malayalam, Unicode)':''}. Use short sentences and examples from Kerala village and school life.
@@ -809,7 +811,12 @@ Return only JSON:
 {"title": "topic name", "explanation": {"intro": "2-3 simple sentences", "points": ["4 to 6 short key points"]},
  "mcq": [{"q": "question", "options": ["4 options"], "answer": 0, "why": "one-line reason"}],
  "examples": ["4 to 5 real-life examples a 9-year-old in Kerala will know"]}
-Give 5 MCQs; "answer" is the index (0-3) of the correct option.`;
+Give 5 MCQs; "answer" is the index (0-3) of the correct option.${tt ? `
+
+Below is an excerpt from the official SCERT Kerala Class 4 Teacher Text for the lesson "${lessonUnit.unit}" (${lessonUnit.subj}). Follow its ideas, terms, activities and examples so the help matches what the class is learning. It is OCR text and may have small errors; do not copy errors.
+<<<
+${tt}
+>>>` : ''}`;
   const models = ['gemini-flash-latest','gemini-2.5-flash','gemini-2.0-flash'];
   let lastErr;
   for(const m of models){
@@ -963,6 +970,28 @@ document.addEventListener('keydown', e => {
 // ---------- class 4 lessons (textbook text from വിദ്യ@AMUP) ----------
 const SUBJECTS = [['മലയാളം','മലയാളം'],['English','English'],['ഗണിതം','ഗണിതം'],['പരിസരപഠനം','പരിസരപഠനം']];
 let BOOK=null, lessonEl=null, lessonSubj=SUBJECTS[0][0];
+// Teacher Text (SCERT Class 4 handbook) from വിദ്യ@AMUP: for the teacher's eyes and to ground the AI help
+const TTFILE = {'English':'data/tt_en.json','ഗണിതം':'data/tt_ma.json','പരിസരപഠനം':'data/tt_evs.json','മലയാളം':'data/tt_ml.json'};
+const TT = {}; let lessonUnit = null, lessonView = 'book';
+async function loadTT(sub){ if(TT[sub]) return TT[sub]; if(!TTFILE[sub]) return null; try{ TT[sub] = await (await fetch(TTFILE[sub])).json(); }catch{ return null; } return TT[sub]; }
+// OCR text often has one word per line: re-flow it into readable paragraphs of about 300 characters
+function ttClean(t){
+  const flow = t.replace(/\r/g,'').split(/\n\s*\n+/).map(b=>b.replace(/\s*\n\s*/g,' ').replace(/\s{2,}/g,' ').trim()).filter(x=>x.length>1);
+  const out=[]; for(const b of flow){ if(b.length<=360){ out.push(b); continue; }
+    const parts=b.split(/(?<=[.?!।:])\s+/); let cur=''; for(const s of parts){ if(cur && (cur+' '+s).length>320){ out.push(cur); cur=''; } cur = cur ? cur+' '+s : s; } if(cur) out.push(cur); }
+  return out;
+}
+function ttPages(d){ return d ? [d.overview||'', ...(d.pages||[])].filter(Boolean) : []; }
+// the teacher-text pages that best match a word (for the AI prompt)
+async function ttContext(word, cap=5000){
+  if(!lessonUnit) return '';
+  const d = (await loadTT(lessonUnit.subj))?.[lessonUnit.unit]; if(!d) return '';
+  const pages = ttPages(d), w = (word||'').toLowerCase();
+  const sc = pages.map((pg,i)=>{ const low=pg.toLowerCase(); let n=0, k=w?low.indexOf(w):-1; while(k>-1){ n++; k=low.indexOf(w,k+w.length); } return [n,i]; }).sort((a,b)=>b[0]-a[0]);
+  const pick = sc.filter(x=>x[0]>0).slice(0,4).map(x=>x[1]); if(!pick.length) pick.push(0);
+  let out=''; for(const i of pick.sort((a,b)=>a-b)){ const t=pages[i]; if(out.length+t.length>cap){ out+=t.slice(0,Math.max(0,cap-out.length)); break; } out+='\n'+t; }
+  return out.trim();
+}
 async function loadBook(){ if(BOOK) return BOOK; const r = await fetch('data/textbook4.json'); BOOK = await r.json(); return BOOK; }
 function unitSort(a,b){ const n=x=>+(x.match(/\d+/)||[0])[0]; return n(a)-n(b); }
 function cleanText(t){
@@ -1005,18 +1034,41 @@ async function openLessons(){
   catch{ $('#ls-body').innerHTML = '<p class="note">പാഠങ്ങൾ തുറക്കാൻ പറ്റിയില്ല. ഇന്റർനെറ്റ് നോക്കി വീണ്ടും ശ്രമിക്കൂ.</p>'; }
 }
 function showUnits(){
-  if(!lessonEl) return; $('#ls-back').hidden=true; $('#ls-title').textContent='4ാം ക്ലാസ് പാഠങ്ങൾ';
+  if(!lessonEl) return; $('#ls-back').hidden=true; $('#ls-title').textContent='4ാം ക്ലാസ് പാഠങ്ങൾ'; lessonView='book';
   const subs=$('#ls-subs'); subs.hidden=false;
   subs.innerHTML = SUBJECTS.map(([k,n])=>`<button class="chip" type="button" data-s="${k}" aria-pressed="${k===lessonSubj}">${n}</button>`).join('');
   subs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lessonSubj=b.dataset.s; showUnits(); });
   const keys = Object.keys(BOOK).filter(k=>k.startsWith(lessonSubj+'|')).map(k=>k.split('|')[1]).sort(unitSort);
   const body=$('#ls-body'); body.innerHTML='';
   keys.forEach(u=>{ const b=document.createElement('button'); b.type='button'; b.className='unit'; b.textContent=u; b.onclick=()=>showUnit(u); body.appendChild(b); });
-  body.insertAdjacentHTML('beforeend','<p class="note">പാഠപുസ്തക ഉള്ളടക്കം വിദ്യ@AMUP ആപ്പിൽ നിന്ന്.</p>');
+  body.insertAdjacentHTML('beforeend','<p class="note">പാഠപുസ്തകവും ടീച്ചർ ടെക്സ്റ്റും വിദ്യ@AMUP ആപ്പിൽ നിന്ന്. പാഠം തുറന്നാൽ മുകളിൽ രണ്ടും തിരഞ്ഞെടുക്കാം.</p>');
 }
-function showUnit(u){
-  $('#ls-back').hidden=false; $('#ls-title').textContent=u; $('#ls-subs').hidden=true;
+async function showUnit(u){
+  lessonUnit = {subj:lessonSubj, unit:u};
+  $('#ls-back').hidden=false; $('#ls-title').textContent=u;
+  const subs=$('#ls-subs'); subs.hidden=false;
+  subs.innerHTML = `<button class="chip" type="button" data-v="book" aria-pressed="${lessonView==='book'}">📘 പാഠപുസ്തകം</button><button class="chip" type="button" data-v="tt" aria-pressed="${lessonView==='tt'}">📗 ടീച്ചർ ടെക്സ്റ്റ്</button>`;
+  subs.querySelectorAll('button').forEach(b=>b.onclick=()=>{ lessonView=b.dataset.v; showUnit(u); });
   const body=$('#ls-body'); body.innerHTML='';
+  if(lessonView==='tt'){
+    body.innerHTML = '<div class="status"><span class="spin"></span>ടീച്ചർ ടെക്സ്റ്റ് എടുക്കുന്നു…</div>';
+    const d = (await loadTT(lessonSubj))?.[u];
+    if(!lessonEl || lessonUnit?.unit!==u || lessonView!=='tt') return;
+    body.innerHTML = '<p class="note">📗 ടീച്ചർക്ക് മാത്രം. ബോർഡിലേക്ക് അയച്ചാൽ മാത്രമേ കുട്ടികൾ കാണൂ. ഈ പാഠത്തിലെ AI സഹായവും ഇത് അടിസ്ഥാനമാക്കും.</p>';
+    if(!d){ body.insertAdjacentHTML('beforeend','<p class="note">ഈ പാഠത്തിന് ടീച്ചർ ടെക്സ്റ്റ് കിട്ടിയില്ല.</p>'); return; }
+    ttPages(d).forEach((pg,pi)=>{
+      body.insertAdjacentHTML('beforeend', `<p class="note" style="margin-top:10px"><b>${pi===0?'ആമുഖം':'പേജ് '+pi}</b></p>`);
+      ttClean(pg).forEach(txt=>{
+        const dv=document.createElement('div'); dv.className='para tt';
+        const p=document.createElement('p'); p.textContent=txt;
+        const a=document.createElement('div'); a.className='acts';
+        const b1=document.createElement('button'); b1.type='button'; b1.textContent='ബോർഡിലേക്ക്'; b1.onclick=()=>addTextToBoard(txt, 30);
+        const b2=document.createElement('button'); b2.type='button'; b2.textContent='✨ AI സഹായം'; b2.onclick=()=>{ const ws=wordsOf(txt); magicBox=null; openHelp(ws[0]||'', 'explain', ws); };
+        a.append(b1,b2); dv.append(p,a); body.appendChild(dv);
+      });
+    });
+    body.scrollTop=0; return;
+  }
   const top=document.createElement('div'); top.className='para';
   top.innerHTML='<p><b></b></p><div class="acts"><button type="button">പുതിയ പേജിൽ തലക്കെട്ട്</button></div>';
   top.querySelector('b').textContent=u;
