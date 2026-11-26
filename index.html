@@ -285,6 +285,8 @@ const store = {
 const norm = s => (s||'').toString().trim().toLowerCase().normalize('NFC');
 const svgURL = svg => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 let toastT;
+// how-to hints: each one is shown only the first time on this device
+function hint(key, msg, ms=3500){ const seen=store.get('vb-hints')||{}; if(seen[key]) return; seen[key]=1; store.set('vb-hints',seen); toast(msg, ms); }
 function toast(msg, ms=2600){
   let t = $('.toast'); if(!t){ t = document.createElement('div'); t.className='toast'; t.setAttribute('role','status'); stage.appendChild(t); }
   t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden=true, ms);
@@ -728,7 +730,7 @@ async function runConvert(strokes){
     page().objs = objs().filter(q=>!strokes.includes(q));
     objs().push(o);
     commit(before); closePop(); setTool('select'); sel=o; draw();
-    toast('വലിച്ച് നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ചോ രണ്ടു വിരൽ കൊണ്ടോ വലുതാക്കാം, ചെറുതാക്കാം.', 4000);
+    hint('conv-move', 'വലിച്ച് നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ചോ രണ്ടു വിരൽ കൊണ്ടോ വലുതാക്കാം, ചെറുതാക്കാം.', 4000);
   };
   const cbox = popEl.querySelector('.cands');
   cands.forEach(w=>{ const c=document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=w; c.onclick=()=>replace(w); cbox.appendChild(c); });
@@ -995,7 +997,7 @@ async function cutBackground(o){
   if(!out){ toast('ഈ ചിത്രത്തിന്റെ പശ്ചാത്തലം മാറ്റാൻ പറ്റിയില്ല.'); return; }
   if(!objs().includes(o)) return;
   const before=snapshot(); o.src=out; o.nobg=true; commit(before); draw();
-  toast('പശ്ചാത്തലം മാറ്റി. ഇഷ്ടമായില്ലെങ്കിൽ Undo അമർത്തൂ.');
+  hint('cut-done', 'പശ്ചാത്തലം മാറ്റി. ഇഷ്ടമായില്ലെങ്കിൽ Undo അമർത്തൂ.');
 }
 function placePicture(src, word, nw, nh){
   const before = snapshot(); const b = magicBox || {x:W/2-100,y:H/2-100,w:0,h:0};
@@ -1007,7 +1009,7 @@ function placePicture(src, word, nw, nh){
   const o = {type:'image', x, y, w:wid, h:hgt, src, label:word||''};
   objs().push(o); commit(before);
   closeSheet(); setTool('select'); sel=o; draw();
-  toast('ചിത്രം വലിച്ചു നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ച് വലുതാക്കാം, ചെറുതാക്കാം.');
+  hint('pic-move', 'ചിത്രം വലിച്ചു നീക്കാം. മൂലയിലെ വട്ടം പിടിച്ച് വലുതാക്കാം, ചെറുതാക്കാം.');
   if(autoCut() && !String(src).startsWith('data:')) cutBackground(o);
 }
 
@@ -1017,8 +1019,8 @@ function setTool(t){
   document.querySelectorAll('.tool').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.tool===t)));
   cv.style.cursor = t==='select' ? 'default' : t==='text' ? 'text' : 'crosshair';
   renderSub(); draw();
-  if(t==='magic') toast('വാക്ക് എഴുതൂ, പിന്നെ ഈ ടൂൾ കൊണ്ട് അതിനെ ചുറ്റി വട്ടമിടൂ ✨', 3500);
-  if(t==='conv') toast('പേന കൊണ്ട് എഴുതിയതിനെ ഈ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ. അത് ടൈപ്പ് അക്ഷരമാകും.', 3500);
+  if(t==='magic') hint('tool-magic', 'വാക്ക് എഴുതൂ, പിന്നെ ഈ ടൂൾ കൊണ്ട് അതിനെ ചുറ്റി വട്ടമിടൂ ✨', 3500);
+  if(t==='conv') hint('tool-conv', 'പേന കൊണ്ട് എഴുതിയതിനെ ഈ ടൂൾ കൊണ്ട് ചുറ്റി വട്ടമിടൂ. അത് ടൈപ്പ് അക്ഷരമാകും.', 3500);
 }
 function swatches(list, current, onPick){
   return list.map(c=>`<button class="sw" type="button" style="background:${c}" data-c="${c}" aria-label="നിറം ${c}" aria-pressed="${c===current}"></button>`).join('');
@@ -1086,6 +1088,22 @@ $('#bgbtn').onclick = e => {
   stage.appendChild(menuEl);
 };
 document.addEventListener('pointerdown', e => { if(menuEl && !menuEl.contains(e.target) && e.target.closest('#bgbtn,#settings')===null) closeMenus(); });
+// Tablet safety net: right after a quick stroke on the board, the browser can swallow the next tap on a button.
+// If a finger tap on a button gets no click, click it ourselves (and ignore a late native click).
+(() => { let downEl=null, dx=0, dy=0, timer=null, fakeEl=null, fakeAt=0;
+  const btnOf = t => t && t.closest && t.closest('button,[role=button],label');
+  document.addEventListener('pointerdown', e => { if(e.pointerType!=='touch') return; downEl=btnOf(e.target); dx=e.clientX; dy=e.clientY; }, true);
+  document.addEventListener('pointerup', e => {
+    if(e.pointerType!=='touch' || !downEl) return; const el=btnOf(e.target), d=downEl; downEl=null;
+    if(el!==d || Math.hypot(e.clientX-dx, e.clientY-dy)>12) return;
+    clearTimeout(timer); timer=setTimeout(()=>{ if(el.isConnected && !el.disabled){ fakeEl=el; fakeAt=Date.now(); el.click(); } }, 350);
+  }, true);
+  document.addEventListener('click', e => {
+    if(!e.isTrusted) return; clearTimeout(timer);
+    if(fakeEl && Date.now()-fakeAt<800 && btnOf(e.target)===fakeEl){ e.stopImmediatePropagation(); e.preventDefault(); }
+    fakeEl=null;
+  }, true);
+})();
 // close the board: save, leave fullscreen, then close the tab/app; if the browser refuses, go back or show a closed screen
 $('#quit').onclick = async () => {
   try{ store.set('vb-board-v1',{pages,cur}); }catch{}
@@ -1167,7 +1185,7 @@ function addTextToBoard(text, size){
   objs().push(obj);
   commit(y===24 && objs().length===1 ? b2 : before);
   setTool('select'); sel=obj; draw();
-  toast('വലിച്ച് നീക്കാം. രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം. "സ്ക്രീൻ മുഴുവൻ" അമർത്തിയാൽ വലുതാകും.', 4000);
+  hint('lesson-move', 'വലിച്ച് നീക്കാം. രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം. "സ്ക്രീൻ മുഴുവൻ" അമർത്തിയാൽ വലുതാകും.', 4000);
 }
 function wordsOf(text){
   const stop=new Set(['the','and','are','was','you','your','they','this','that','with','have','what','from','for','its','can','his','her','their','them','there','these','those','which','who','how','why','when','will','into','about','all','not','but','has','had','did','does','our','out','one','two','some','any','may','very','also','then','than','write','name','names']);
@@ -1277,7 +1295,7 @@ async function placeUpload(blob, name, asNote){
   if(asNote) objs().unshift(o); else objs().push(o);
   if(asNote && /^#(fff|ffffff|ffe066|ffd84d)$/i.test(st.color)) st.color = COLORS[0]; // dark ink on a white page
   commit(before); setTool(asNote?'pen':'select'); if(!asNote) sel=o; draw();
-  toast(asNote ? 'പേന കൊണ്ട് ഇതിൽ എഴുതാം. ▷ ടൂൾ എടുത്ത് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം. എഴുതിയതും കൂടെ നീങ്ങും.' : 'വലിച്ച് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം.', 5000);
+  hint(asNote?'note-open':'upload-move', asNote ? 'പേന കൊണ്ട് ഇതിൽ എഴുതാം. ▷ ടൂൾ എടുത്ത് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം. എഴുതിയതും കൂടെ നീങ്ങും.' : 'വലിച്ച് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം.', 5000);
 }
 async function showPdf(f){
   $('#up-back').hidden=false; $('#up-title').textContent=f.name;
