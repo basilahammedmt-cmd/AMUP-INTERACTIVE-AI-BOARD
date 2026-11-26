@@ -110,6 +110,14 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 .toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:var(--ink);color:var(--chrome);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
 .menu{position:absolute;z-index:9;background:var(--chrome);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;gap:2px;min-width:180px}
 .menu button{border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:15px}
+.shapegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));width:min(660px,calc(100% - 16px));max-height:min(60vh,420px);overflow:auto}
+.shapegrid button{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.2;padding:8px}
+.shapegrid svg{width:28px;height:28px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.shapepick{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.cropov{position:fixed;inset:0;z-index:50;background:rgba(10,20,16,.92);display:flex;flex-direction:column}
+.cropbar{display:flex;align-items:center;gap:8px;padding:10px;color:#fff;flex-wrap:wrap}.cropbar span{flex:1;min-width:180px}
+.cropwrap{flex:1;display:grid;place-items:center;overflow:hidden;padding:8px}
+.cropwrap canvas{max-width:100%;max-height:100%;background:#fff}
 .menu button:hover,.menu button[aria-pressed="true"]{background:var(--chrome-2)}
 .logo{background:#fff;border-radius:7px;padding:2px;height:32px;width:auto}
 .lessbtn{display:flex;align-items:center;gap:6px;height:44px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);padding:0 14px;font-family:var(--f-display);font-weight:600;font-size:17px;cursor:pointer}
@@ -181,6 +189,7 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
   <header class="top">
     <div class="brand"><img src="logo.png" alt="" width="30" height="32" class="logo"><span>AMUP AI ബോർഡ്</span></div>
     <button class="lessbtn" id="lessons" type="button"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/></svg>പാഠങ്ങൾ</button>
+    <button class="lessbtn" id="uploads" type="button" style="background:#2f6fd6"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>അപ്‌ലോഡ്</button>
     <div class="grp">
       <button class="ib" id="undo" title="തിരികെ (Undo)" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
       <button class="ib" id="redo" title="വീണ്ടും (Redo)" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
@@ -229,12 +238,26 @@ textarea.txt{position:absolute;z-index:7;background:transparent;border:2px dashe
 const COLORS = ['#1d2a26','#ffffff','#ffe066','#7cc7ff','#ff8a80','#9be59b','#1f5fbf','#d1342b'];
 const HL_COLORS = ['#ffe14d','#7cf0a2','#7ad3ff','#ff9ccf','#ffb35c'];
 const SHAPES = [
-  ['rect','<rect x="4" y="6" width="16" height="12" rx="1"/>','ചതുരം'],
-  ['ellipse','<ellipse cx="12" cy="12" rx="8" ry="7"/>','വൃത്തം'],
-  ['tri','<path d="M12 4l9 16H3z"/>','ത്രികോണം'],
-  ['line','<path d="M4 20 20 4"/>','വര'],
-  ['arrow','<path d="M4 20 20 4M11 4h9v9"/>','അമ്പ്'],
-  ['star','<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>','നക്ഷത്രം'],
+  ['rect','<rect x="3" y="6" width="18" height="12" rx="1"/>','ചതുരം (Rectangle)'],
+  ['square','<rect x="5" y="5" width="14" height="14" rx="1"/>','സമചതുരം (Square)'],
+  ['circle','<circle cx="12" cy="12" r="8"/>','വൃത്തം (Circle)'],
+  ['ellipse','<ellipse cx="12" cy="12" rx="9" ry="6"/>','ദീർഘവൃത്തം (Oval)'],
+  ['tri','<path d="M12 4l9 16H3z"/>','ത്രികോണം (Triangle)'],
+  ['rtri','<path d="M4 4v16h16z"/>','മട്ടത്രികോണം (Right triangle)'],
+  ['para','<path d="M8 6h13l-5 12H3z"/>','സാമാന്തരികം (Parallelogram)'],
+  ['trap','<path d="M8 6h8l5 12H3z"/>','ലംബകം (Trapezium)'],
+  ['rhombus','<path d="M12 3l8 9-8 9-8-9z"/>','സമഭുജ സാമാന്തരികം (Rhombus)'],
+  ['pent','<path d="M12 3l9 6.5-3.4 10.5H6.4L3 9.5z"/>','പഞ്ചഭുജം (Pentagon)'],
+  ['hex','<path d="M7 4h10l5 8-5 8H7l-5-8z"/>','ഷഡ്ഭുജം (Hexagon)'],
+  ['cube','<path d="M4 9h11v11H4zM4 9l5-5h11v11l-5 5M15 9l5-5"/>','ഘനം (Cube)'],
+  ['cuboid','<path d="M2 10h14v9H2zM2 10l5-4h15v9l-6 4M16 10l6-4"/>','ചതുരക്കട്ട (Cuboid)'],
+  ['cyl','<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12M19 6v12M5 18a7 2.5 0 0 0 14 0"/>','സിലിണ്ടർ (Cylinder)'],
+  ['cone','<path d="M12 3 5 18M12 3l7 15M5 18a7 2.5 0 0 0 14 0"/>','വൃത്തസ്തൂപിക (Cone)'],
+  ['sphere','<circle cx="12" cy="12" r="8"/><path d="M4 12a8 2.5 0 0 0 16 0"/>','ഗോളം (Sphere)'],
+  ['pyramid','<path d="M12 3 3 17l8 4 10-5zM12 3l-1 18"/>','സ്തൂപിക (Pyramid)'],
+  ['line','<path d="M4 20 20 4"/>','വര (Line)'],
+  ['arrow','<path d="M4 20 20 4M11 4h9v9"/>','അമ്പ് (Arrow)'],
+  ['star','<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>','നക്ഷത്രം (Star)'],
 ];
 const BGS = [['plain','വെള്ള ബോർഡ്'],['grid','കള്ളി (ഗ്രിഡ്)'],['lines','നാലുവര കോപ്പി'],['chalk','കറുത്ത ബോർഡ് (ചോക്ക്)']];
 const TEXT_SIZES = [[28,'ചെറുത്'],[44,'ഇടത്തരം'],[72,'വലുത്']];
@@ -298,9 +321,25 @@ function persist(){ clearTimeout(persistT); persistT = setTimeout(()=>store.set(
 const imgCache = new Map();
 function getImg(src){
   let im = imgCache.get(src);
+  if(!im && String(src).startsWith('idb:')){ im = new Image(); im.onload = () => draw(); imgCache.set(src, im);
+    idbGet('imgs', src.slice(4)).then(r=>{ if(r) im.src = URL.createObjectURL(r.blob); }).catch(()=>{}); return im; }
   if(!im){ im = new Image(); if(/^https?:/.test(src)) im.crossOrigin='anonymous'; im.onload = () => draw(); im.src = src; imgCache.set(src, im); }
   return im;
 }
+
+// ---------- IndexedDB: uploaded notes and big pictures (localStorage is too small for them) ----------
+let idbP=null;
+function idb(){ return idbP || (idbP = new Promise((ok,no)=>{ const r=indexedDB.open('vb-files',1);
+  r.onupgradeneeded=()=>{ const d=r.result; d.createObjectStore('files',{keyPath:'id'}); d.createObjectStore('imgs',{keyPath:'id'}); };
+  r.onsuccess=()=>ok(r.result); r.onerror=()=>no(r.error); })); }
+async function idbTx(store, mode, fn){ const d=await idb(); return new Promise((ok,no)=>{ const t=d.transaction(store,mode); const q=fn(t.objectStore(store)); t.oncomplete=()=>ok(q?.result); t.onerror=()=>no(t.error); }); }
+const idbGet=(st,id)=>idbTx(st,'readonly',s=>s.get(id));
+const idbPut=(st,v)=>idbTx(st,'readwrite',s=>s.put(v));
+const idbDel=(st,id)=>idbTx(st,'readwrite',s=>s.delete(id));
+const idbAll=st=>idbTx(st,'readonly',s=>s.getAll());
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+async function saveImgBlob(blob){ const id=newId(); await idbPut('imgs',{id,blob}); return 'idb:'+id; }
+async function srcBlob(src){ if(String(src).startsWith('idb:')) return (await idbGet('imgs',src.slice(4)))?.blob; return (await fetch(src)).blob(); }
 
 // ---------- canvas sizing ----------
 let W=0,H=0,DPR=1;
@@ -348,17 +387,51 @@ function shapePath(c, o){
   else if(o.kind==='line'||o.kind==='arrow'){ c.moveTo(x1,y1); c.lineTo(x2,y2);
     if(o.kind==='arrow'){ const a=Math.atan2(y2-y1,x2-x1), L=Math.max(14,o.size*3.5);
       c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a-.45),y2-L*Math.sin(a-.45)); c.moveTo(x2,y2); c.lineTo(x2-L*Math.cos(a+.45),y2-L*Math.sin(a+.45)); } }
+  else if(o.kind==='square'){ const q=Math.min(w,h); c.rect(x1<x2?x:x+w-q, y1<y2?y:y+h-q, q, q); }
+  else if(o.kind==='circle'){ const r=Math.min(w,h)/2; c.arc(x+w/2,y+h/2,r,0,Math.PI*2); }
+  else if(['rtri','para','trap','rhombus'].includes(o.kind)){
+    const P = o.kind==='rtri' ? [[x,y],[x,y+h],[x+w,y+h]] : o.kind==='para' ? [[x+w*.25,y],[x+w,y],[x+w*.75,y+h],[x,y+h]]
+      : o.kind==='trap' ? [[x+w*.25,y],[x+w*.75,y],[x+w,y+h],[x,y+h]] : [[x+w/2,y],[x+w,y+h/2],[x+w/2,y+h],[x,y+h/2]];
+    P.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1])); c.closePath(); }
+  else if(o.kind==='pent'||o.kind==='hex'){ const n=o.kind==='pent'?5:6, a0=o.kind==='pent'?-Math.PI/2:0;
+    for(let i=0;i<n;i++){ const a=a0+i*2*Math.PI/n, px=x+w/2+Math.cos(a)*w/2, py=y+h/2+Math.sin(a)*h/2; i?c.lineTo(px,py):c.moveTo(px,py); } c.closePath(); }
   else if(o.kind==='star'){ const cx=x+w/2, cy=y+h/2; for(let i=0;i<10;i++){ const r = i%2? .4:1, a=-Math.PI/2+i*Math.PI/5; const px=cx+Math.cos(a)*w/2*r, py=cy+Math.sin(a)*h/2*r; i?c.lineTo(px,py):c.moveTo(px,py);} c.closePath(); }
 }
 const FONTS=[['Noto Sans Malayalam',600,'നോട്ടോ സാൻസ്'],['Manjari',700,'മഞ്ജരി (ഉരുണ്ടത്)'],['Gayathri',700,'ഗായത്രി'],['Anek Malayalam',600,'അനേക്'],['Baloo Chettan 2',600,'ബാലൂ ചേട്ടൻ (പഴയത്)'],['Chilanka',400,'ചിലങ്ക (കൈയക്ഷരം)']];
 function curFont(){ const n=store.get('vb-font')||'Noto Sans Malayalam'; return FONTS.find(f=>f[0]===n)||FONTS[0]; }
 function applyFont(){ const [n,w]=curFont(); const r=document.documentElement.style; r.setProperty('--f-ml',`"${n}"`); r.setProperty('--f-w',w); document.fonts?.load?.(`${w} 40px "${n}"`).then(()=>draw()).catch(()=>{}); }
 function textFont(o){ const [n,w]=curFont(); return `${w} ${o.size}px "${n}","Noto Sans Malayalam",sans-serif`; }
+// 3D solids: visible edges solid, hidden edges dashed (as in the maths textbook)
+const SOLIDS = new Set(['cube','cuboid','cyl','cone','sphere','pyramid']);
+function drawSolid(c, o){
+  const {x1,y1,x2,y2} = o; const x=Math.min(x1,x2), y=Math.min(y1,y2), w=Math.max(4,Math.abs(x2-x1)), h=Math.max(4,Math.abs(y2-y1));
+  const solid=[], dash=[]; const L=(a,b,arr=solid)=>arr.push(['l',a,b]); const E=(cx,cy,rx,ry,s0,s1,arr=solid)=>arr.push(['e',cx,cy,rx,ry,s0,s1]);
+  if(o.kind==='cube'||o.kind==='cuboid'){
+    const d=Math.min(w,h)*0.3; let fw=w-d, fh=h-d; if(o.kind==='cube'){ fw=fh=Math.min(fw,fh); }
+    const F=[[x,y+d],[x+fw,y+d],[x+fw,y+d+fh],[x,y+d+fh]], B=F.map(p=>[p[0]+d,p[1]-d]);
+    L(F[0],F[1]);L(F[1],F[2]);L(F[2],F[3]);L(F[3],F[0]); L(B[0],B[1]);L(B[1],B[2]); L(F[0],B[0]);L(F[1],B[1]);L(F[2],B[2]);
+    L(B[2],B[3],dash);L(B[3],B[0],dash);L(F[3],B[3],dash);
+  } else if(o.kind==='cyl'){
+    const rx=w/2, ry=Math.min(h*0.15,w*0.25), cx=x+rx;
+    E(cx,y+ry,rx,ry,0,Math.PI*2); L([x,y+ry],[x,y+h-ry]); L([x+w,y+ry],[x+w,y+h-ry]); E(cx,y+h-ry,rx,ry,0,Math.PI); E(cx,y+h-ry,rx,ry,Math.PI,Math.PI*2,dash);
+  } else if(o.kind==='cone'){
+    const rx=w/2, ry=Math.min(h*0.15,w*0.25), cx=x+rx, by=y+h-ry;
+    L([cx,y],[x,by]); L([cx,y],[x+w,by]); E(cx,by,rx,ry,0,Math.PI); E(cx,by,rx,ry,Math.PI,Math.PI*2,dash);
+  } else if(o.kind==='sphere'){
+    const r=Math.min(w,h)/2, cx=x+w/2, cy=y+h/2; E(cx,cy,r,r,0,Math.PI*2); E(cx,cy,r,r*0.3,0,Math.PI); E(cx,cy,r,r*0.3,Math.PI,Math.PI*2,dash);
+  } else if(o.kind==='pyramid'){
+    const A=[x,y+h*.82], B=[x+w*.62,y+h], C=[x+w,y+h*.78], D=[x+w*.38,y+h*.62], P=[x+w*.5,y];
+    L(A,B);L(B,C);L(P,A);L(P,B);L(P,C); L(C,D,dash);L(D,A,dash);L(P,D,dash);
+  }
+  const run=(arr)=>{ c.beginPath(); for(const s of arr){ if(s[0]==='l'){ c.moveTo(s[1][0],s[1][1]); c.lineTo(s[2][0],s[2][1]); } else { c.moveTo(s[1]+s[3]*Math.cos(s[5]), s[2]+s[4]*Math.sin(s[5])); c.ellipse(s[1],s[2],s[3],s[4],0,s[5],s[6]); } } c.stroke(); };
+  c.save(); c.strokeStyle=o.color; c.lineWidth=o.size; c.lineCap='round'; c.lineJoin='round'; run(solid); c.setLineDash([o.size*2.5,o.size*2.5]); run(dash); c.restore();
+}
 function drawObj(c, o){
   if(o.type==='stroke') strokePath(c,o);
+  else if(o.type==='shape' && SOLIDS.has(o.kind)) drawSolid(c,o);
   else if(o.type==='shape'){ c.strokeStyle=o.color; c.lineWidth=o.size; c.lineCap='round'; c.lineJoin='round'; shapePath(c,o); c.stroke(); }
   else if(o.type==='text'){ c.fillStyle=o.color; c.font=textFont(o); c.textBaseline='top'; o.text.split('\n').forEach((ln,i)=>c.fillText(ln,o.x,o.y+i*o.size*1.25)); }
-  else if(o.type==='image'){ const im=getImg(o.src); if(im.complete && im.naturalWidth){ if(!String(o.src).startsWith('data:')){ c.save(); c.fillStyle='#ffffff'; c.beginPath(); c.roundRect?c.roundRect(o.x-6,o.y-6,o.w+12,o.h+12,12):c.rect(o.x-6,o.y-6,o.w+12,o.h+12); c.fill(); c.restore(); } c.drawImage(im,o.x,o.y,o.w,o.h); } }
+  else if(o.type==='image'){ const im=getImg(o.src); if(im.complete && im.naturalWidth){ if(/^https?:/.test(String(o.src))){ c.save(); c.fillStyle='#ffffff'; c.beginPath(); c.roundRect?c.roundRect(o.x-6,o.y-6,o.w+12,o.h+12,12):c.rect(o.x-6,o.y-6,o.w+12,o.h+12); c.fill(); c.restore(); } c.drawImage(im,o.x,o.y,o.w,o.h); } }
 }
 let live = null;       // object being drawn right now
 let sel = null;        // selected object
@@ -399,6 +472,16 @@ function hit(o,x,y,tol=8){
 }
 function topHit(x,y){ const a=objs(); for(let i=a.length-1;i>=0;i--) if(hit(a[i],x,y,10)) return a[i]; return null; }
 function pip(x,y,poly){ let inside=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const [xi,yi]=poly[i],[xj,yj]=poly[j]; if(((yi>y)!==(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside; } return inside; }
+// ink written on top of a PDF note travels and zooms with it
+function riders(o){ if(!(o && o.type==='image' && o.note)) return []; const b=bbox(o);
+  return objs().filter(q=>q!==o && !(q.type==='image'&&q.note) && (()=>{ const k=bbox(q), cx=k.x+k.w/2, cy=k.y+k.h/2; return cx>=b.x && cx<=b.x+b.w && cy>=b.y && cy<=b.y+b.h; })()); }
+function scaleAbout(o, orig, s, ox, oy){
+  const X=v=>ox+(v-ox)*s, Y=v=>oy+(v-oy)*s;
+  if(o.type==='stroke'){ o.pts=orig.pts.map(p=>[X(p[0]),Y(p[1]),p[2]]); o.size=Math.max(1,orig.size*s); }
+  else if(o.type==='shape'){ o.x1=X(orig.x1); o.x2=X(orig.x2); o.y1=Y(orig.y1); o.y2=Y(orig.y2); o.size=Math.max(1,orig.size*s); }
+  else if(o.type==='text'){ o.x=X(orig.x); o.y=Y(orig.y); o.size=Math.max(8,orig.size*s); }
+  else { o.x=X(orig.x); o.y=Y(orig.y); o.w=Math.max(30,orig.w*s); o.h=Math.max(30,orig.h*s); }
+}
 function moveObj(o,dx,dy){
   if(o.type==='stroke') o.pts.forEach(p=>{p[0]+=dx;p[1]+=dy;});
   else if(o.type==='shape'){o.x1+=dx;o.x2+=dx;o.y1+=dy;o.y2+=dy;}
@@ -442,7 +525,7 @@ cv.addEventListener('pointerdown', e => {
     if(touches.size===2){
       const [mx,my]=tmid(); const target = (sel && objs().includes(sel)) ? sel : topHit(mx,my);
       if(live){ live=null; } if(ptr!==null){ try{cv.releasePointerCapture(ptr);}catch{} ptr=null; } drag=null;
-      if(target){ const b=bbox(target); pinch={o:target, orig:JSON.parse(JSON.stringify(target)), d0:Math.max(20,tdist()), c:[b.x+b.w/2,b.y+b.h/2], before:snapshot()}; sel=target; if(st.tool!=='select') setTool('select'); sel=target; }
+      if(target){ const b=bbox(target), group=[target, ...riders(target)]; pinch={o:target, group, origs:group.map(g=>JSON.parse(JSON.stringify(g))), orig:JSON.parse(JSON.stringify(target)), d0:Math.max(20,tdist()), c:[b.x+b.w/2,b.y+b.h/2], before:snapshot()}; sel=target; if(st.tool!=='select') setTool('select'); sel=target; }
       draw(); return;
     }
   }
@@ -450,7 +533,7 @@ cv.addEventListener('pointerdown', e => {
   if(ptr!==null) return; // ignore second finger / palm while drawing
   closeMenus(); hideMagicChip(); closePop();
   { const [x,y]=pos(e); const ci=closeHit(x,y); if(ci){ const b0=snapshot(); page().objs=objs().filter(o=>o!==ci); if(sel===ci) sel=null; commit(b0); draw(); e.preventDefault(); return; } }
-  ptr = e.pointerId; cv.setPointerCapture(ptr);
+  ptr = e.pointerId; try{ cv.setPointerCapture(ptr); }catch{}
   const [x,y] = pos(e); start=[x,y]; before = snapshot();
   const t = st.tool, pr = e.pointerType==='pen' ? (e.pressure||.5) : .5;
   if(t==='pen'||t==='magic'||t==='conv') live = {type:'stroke', pts:[[x,y,pr]], color:st.color, size:st.size.pen, magic:(t==='magic'||t==='conv')?t:false};
@@ -460,12 +543,14 @@ cv.addEventListener('pointerdown', e => {
   else if(t==='text'){ ptr=null; openTextEditor(x,y); return; }
   else if(t==='select'){
     if(sel){ const b=bbox(sel); if(Math.hypot(x-(b.x+b.w+6), y-(b.y+b.h+6))<24){ drag={mode:'scale', orig:JSON.parse(JSON.stringify(sel)), b}; return; } }
-    const o = topHit(x,y); sel = o; drag = o ? {mode:'move', last:[x,y]} : null; draw();
+    const o = topHit(x,y); sel = o; drag = o ? {mode:'move', last:[x,y], riders:riders(o)} : null; draw();
   }
 });
 cv.addEventListener('pointermove', e => {
   if(touches.has(e.pointerId)) touches.set(e.pointerId, pos(e));
-  if(pinch){ if(touches.size===2){ const s=Math.max(.15, Math.min(12, tdist()/pinch.d0)); scaleObj(pinch.o, pinch.orig, s); centerOn(pinch.o, pinch.c[0], pinch.c[1]); draw(); } return; }
+  if(pinch){ if(touches.size===2){ const s=Math.max(.15, Math.min(12, tdist()/pinch.d0));
+      if(pinch.group.length>1) pinch.group.forEach((g,i)=>scaleAbout(g, pinch.origs[i], s, pinch.c[0], pinch.c[1]));
+      else { scaleObj(pinch.o, pinch.orig, s); centerOn(pinch.o, pinch.c[0], pinch.c[1]); } draw(); } return; }
   if(st.tool==='eraser' && ptr===null){ eraserAt=pos(e); draw(); return; }
   if(e.pointerId!==ptr) return;
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -473,7 +558,7 @@ cv.addEventListener('pointermove', e => {
   if(live?.type==='stroke'){ for(const ev of (evs.length?evs:[e])){ const [x,y]=pos(ev); const l=live.pts[live.pts.length-1]; if(Math.hypot(x-l[0],y-l[1])>1.2) live.pts.push([x,y, ev.pointerType==='pen'?(ev.pressure||.5):.5]); } draw(); }
   else if(live?.type==='shape'){ const [x,y]=pos(e); live.x2=x; live.y2=y; draw(); }
   else if(t==='eraser'){ const [x,y]=pos(e); eraserAt=[x,y]; eraseAt(x,y); draw(); }
-  else if(drag?.mode==='move' && sel){ const [x,y]=pos(e); moveObj(sel,x-drag.last[0],y-drag.last[1]); drag.last=[x,y]; draw(); }
+  else if(drag?.mode==='move' && sel){ const [x,y]=pos(e), dx=x-drag.last[0], dy=y-drag.last[1]; moveObj(sel,dx,dy); (drag.riders||[]).forEach(q=>moveObj(q,dx,dy)); drag.last=[x,y]; draw(); }
   else if(drag?.mode==='scale' && sel){ const [x,y]=pos(e); const b=drag.b; const s=Math.max(.15, Math.max((x-b.x)/Math.max(b.w,1),(y-b.y)/Math.max(b.h,1))); scaleObj(sel, drag.orig, s); draw(); }
 });
 function endPointer(e){
@@ -882,7 +967,7 @@ async function toSmallURL(srcBlobOrImg){
 }
 // fallback: clear a plain background by flood-filling from the edges
 async function floodCut(src){
-  const im = await loadImgEl(src); const k=Math.min(1,800/Math.max(im.naturalWidth,im.naturalHeight));
+  const im = await loadImgEl(String(src).startsWith('idb:') ? URL.createObjectURL(await srcBlob(src)) : src); const k=Math.min(1,800/Math.max(im.naturalWidth,im.naturalHeight));
   const c=document.createElement('canvas'); c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k);
   const g=c.getContext('2d'); g.drawImage(im,0,0,c.width,c.height); const W2=c.width,H2=c.height; const id=g.getImageData(0,0,W2,H2), d=id.data;
   const edge=[]; for(let x=0;x<W2;x+=4){ edge.push((0*W2+x)*4, ((H2-1)*W2+x)*4); } for(let y=0;y<H2;y+=4){ edge.push((y*W2)*4, (y*W2+W2-1)*4); }
@@ -900,7 +985,7 @@ async function cutBackground(o){
   let out=null;
   try{
     bgrLib = bgrLib || await import(BGR.mod);
-    const blob = await (await fetch(o.src)).blob();
+    const blob = await srcBlob(o.src);
     let last=-1;
     const res = await bgrLib.removeBackground(blob, {model:'small', publicPath:BGR.data, output:{format:'image/png'},
       progress:(key,cur,total)=>{ if(/fetch/.test(key) && total){ const pc=Math.round(cur/total*100); if(pc>=last+10){ last=pc; toast(`AI മോഡൽ എടുക്കുന്നു… ${pc}%`, 4000); } } }});
@@ -947,12 +1032,12 @@ function renderSub(){
   if(t==='pen'||t==='magic'||t==='conv') h = swatches(COLORS, st.color) + sizeCtl('pen',2,30);
   else if(t==='hl') h = swatches(HL_COLORS, st.hlColor) + sizeCtl('hl',10,60);
   else if(t==='eraser') h = `<span class="size">ഇറേസർ വലിപ്പം</span>` + sizeCtl('eraser',12,120);
-  else if(t==='shape') h = SHAPES.map(([k,svg,name])=>`<button class="chip" type="button" data-shape="${k}" aria-label="${name}" title="${name}" aria-pressed="${k===st.shape}"><svg viewBox="0 0 24 24">${svg}</svg></button>`).join('') + swatches(COLORS, st.color) + sizeCtl('shape',2,24);
+  else if(t==='shape'){ const cs=SHAPES.find(x=>x[0]===st.shape)||SHAPES[0]; h = `<button class="chip shapepick" type="button" id="shapepick" aria-label="ഷേപ്പ് തിരഞ്ഞെടുക്കുക" title="${cs[2]}"><svg viewBox="0 0 24 24">${cs[1]}</svg>▾ ഷേപ്പുകൾ</button>` + swatches(COLORS, st.color) + sizeCtl('shape',2,24); }
   else if(t==='text') h = TEXT_SIZES.map(([v,n])=>`<button class="chip" type="button" data-ts="${v}" aria-pressed="${v===st.textSize}">${n}</button>`).join('') + swatches(COLORS, st.color);
   else h = '';
   s.innerHTML = h; s.hidden = false;
   s.querySelectorAll('.sw').forEach(b=>b.onclick=()=>{ if(t==='hl') st.hlColor=b.dataset.c; else st.color=b.dataset.c; renderSub(); });
-  s.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{ st.shape=b.dataset.shape; renderSub(); });
+  const sp = s.querySelector('#shapepick'); if(sp) sp.onclick = e => { e.stopPropagation(); openShapeGrid(sp); };
   s.querySelectorAll('[data-ts]').forEach(b=>b.onclick=()=>{ st.textSize=+b.dataset.ts; renderSub(); });
   s.querySelectorAll('input[type=range]').forEach(inp=>inp.oninput=()=>{ const k=inp.id.slice(3); st.size[k]=+inp.value; const d=$('#sz-dot'); d.style.width=d.style.height=Math.min(+inp.value,28)+'px'; });
 }
@@ -978,6 +1063,16 @@ $('#clear').onclick = () => {
   const before=snapshot(); page().objs=[]; sel=null; commit(before); draw(); toast('പേജ് മായ്ച്ചു. തിരികെ വേണമെങ്കിൽ Undo.');
 };
 let menuEl=null;
+function openShapeGrid(anchor){
+  if(menuEl){ closeMenus(); return; }
+  menuEl = document.createElement('div'); menuEl.className='menu shapegrid';
+  menuEl.innerHTML = SHAPES.map(([k,svg,name])=>`<button type="button" data-shape="${k}" aria-pressed="${k===st.shape}"><svg viewBox="0 0 24 24">${svg}</svg><span>${name}</span></button>`).join('');
+  menuEl.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{ st.shape=b.dataset.shape; closeMenus(); renderSub(); });
+  stage.appendChild(menuEl);
+  const r=anchor.getBoundingClientRect(), sr=stage.getBoundingClientRect();
+  menuEl.style.left = Math.max(8, Math.min(sr.width - menuEl.offsetWidth - 8, r.left - sr.left)) + 'px';
+  menuEl.style.bottom = (sr.bottom - r.top + 10) + 'px';
+}
 function closeMenus(){ if(menuEl){ menuEl.remove(); menuEl=null; } }
 $('#bgbtn').onclick = e => {
   e.stopPropagation(); if(menuEl){ closeMenus(); return; }
@@ -1080,6 +1175,7 @@ function wordsOf(text){
   return [...new Set(ws)].slice(0,14);
 }
 async function openLessons(){
+  closeUploads();
   if(lessonEl){ lessonEl.remove(); lessonEl=null; return; }
   lessonEl = document.createElement('section'); lessonEl.className='lesson'; lessonEl.setAttribute('aria-label','4ാം ക്ലാസ് പാഠങ്ങൾ');
   lessonEl.innerHTML = `<header><button class="ib" id="ls-back" type="button" aria-label="പിന്നോട്ട്" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="ls-title">4ാം ക്ലാസ് പാഠങ്ങൾ</h2><button class="ib" id="ls-close" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="subs" id="ls-subs"></div><div class="body" id="ls-body"><div class="status"><span class="spin"></span>പാഠങ്ങൾ എടുക്കുന്നു…</div></div>`;
@@ -1141,6 +1237,83 @@ async function showUnit(u){
   body.scrollTop=0;
 }
 $('#lessons').onclick = openLessons;
+
+// ---------- Uploads: PDFs and pictures (notes) kept on this phone ----------
+let upEl=null, pdfLib=null;
+async function loadPdfLib(){ if(pdfLib) return pdfLib; await new Promise((ok,no)=>{ const sc=document.createElement('script'); sc.src='vendor/pdfjs/pdf.min.js'; sc.onload=ok; sc.onerror=no; document.head.appendChild(sc); });
+  pdfLib = window.pdfjsLib; pdfLib.GlobalWorkerOptions.workerSrc='vendor/pdfjs/pdf.worker.min.js'; return pdfLib; }
+async function openPdf(f){ const lib=await loadPdfLib(); return lib.getDocument({data:new Uint8Array(await f.blob.arrayBuffer())}).promise; }
+async function renderPdfPage(doc, n, width){ const pg=await doc.getPage(n); const v1=pg.getViewport({scale:1}); const vp=pg.getViewport({scale:width/v1.width});
+  const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height); const g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height);
+  await pg.render({canvasContext:g, viewport:vp}).promise; return c; }
+const canvasBlob=(c,type='image/jpeg',q=0.88)=>new Promise(ok=>c.toBlob(ok,type,q));
+function closeUploads(){ if(upEl){ upEl.remove(); upEl=null; } }
+async function openUploads(){
+  if(upEl){ closeUploads(); return; } if(lessonEl){ lessonEl.remove(); lessonEl=null; }
+  upEl=document.createElement('section'); upEl.className='lesson'; upEl.setAttribute('aria-label','അപ്‌ലോഡുകൾ');
+  upEl.innerHTML=`<header><button class="ib" id="up-back" type="button" aria-label="പിന്നോട്ട്" hidden><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="up-title">📁 അപ്‌ലോഡുകൾ</h2><button class="ib" id="up-close" type="button" aria-label="അടയ്ക്കുക"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="body" id="up-body"></div>`;
+  stage.appendChild(upEl); $('#up-close').onclick=closeUploads; $('#up-back').onclick=showUploadList; showUploadList();
+}
+async function showUploadList(){
+  if(!upEl) return; $('#up-back').hidden=true; $('#up-title').textContent='📁 അപ്‌ലോഡുകൾ';
+  const body=$('#up-body'); body.innerHTML=`<label class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer">＋ PDF / ചിത്രം ചേർക്കുക<input id="up-in" type="file" accept="application/pdf,image/*" multiple hidden></label>
+    <p class="note">നോട്ട്സ്, PDF, ചിത്രങ്ങൾ ഈ ഫോണിൽ സൂക്ഷിക്കും. ഇന്റർനെറ്റ് വേണ്ട.</p><div id="up-list"></div>`;
+  $('#up-in').onchange = async e => { const fs=[...e.target.files]; for(const f of fs){ await idbPut('files',{id:newId(), name:f.name, type:f.type||(/\.pdf$/i.test(f.name)?'application/pdf':''), blob:f, added:Date.now()}); } showUploadList(); };
+  let files=[]; try{ files=(await idbAll('files')).sort((a,b)=>b.added-a.added); }catch{ body.insertAdjacentHTML('beforeend','<p class="note">ഈ ബ്രൗസറിൽ ഫയലുകൾ സൂക്ഷിക്കാൻ പറ്റുന്നില്ല.</p>'); return; }
+  const list=$('#up-list'); if(!files.length) list.innerHTML='<p class="note">ഇതുവരെ ഒന്നും ചേർത്തിട്ടില്ല.</p>';
+  files.forEach(f=>{ const d=document.createElement('div'); d.className='para';
+    const isPdf=/pdf/.test(f.type);
+    d.innerHTML=`<p><b></b><br><small class="note">${isPdf?'PDF':'ചിത്രം'} · ${(f.blob.size/1048576).toFixed(1)} MB</small></p><div class="acts"><button type="button" data-a="open">${isPdf?'പേജുകൾ കാണുക':'ബോർഡിലേക്ക്'}</button><button type="button" data-a="del">നീക്കം ചെയ്യുക</button></div>`;
+    d.querySelector('b').textContent=f.name;
+    d.querySelector('[data-a=open]').onclick=()=> isPdf ? showPdf(f) : placeUpload(f.blob, f.name, false);
+    d.querySelector('[data-a=del]').onclick=async()=>{ await idbDel('files',f.id); showUploadList(); };
+    list.appendChild(d); });
+}
+async function placeUpload(blob, name, asNote){
+  const src=await saveImgBlob(blob); const bm=await createImageBitmap(blob); const ar=bm.width/bm.height;
+  const before=snapshot(); let w, h;
+  if(asNote){ h=H-110; w=h*ar; if(w>W-40){ w=W-40; h=w/ar; } } else { h=Math.min(H*0.55, 360); w=h*ar; if(w>W*0.6){ w=W*0.6; h=w/ar; } }
+  const o={type:'image', x:(W-w)/2, y:asNote?16:Math.max(16,(H-h)/2-40), w, h, src, label:name||'', note:asNote||undefined};
+  if(asNote) objs().unshift(o); else objs().push(o);
+  if(asNote && /^#(fff|ffffff|ffe066|ffd84d)$/i.test(st.color)) st.color = COLORS[0]; // dark ink on a white page
+  commit(before); setTool(asNote?'pen':'select'); if(!asNote) sel=o; draw();
+  toast(asNote ? 'പേന കൊണ്ട് ഇതിൽ എഴുതാം. ▷ ടൂൾ എടുത്ത് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം. എഴുതിയതും കൂടെ നീങ്ങും.' : 'വലിച്ച് നീക്കാം, രണ്ടു വിരൽ കൊണ്ട് വലുതാക്കാം.', 5000);
+}
+async function showPdf(f){
+  $('#up-back').hidden=false; $('#up-title').textContent=f.name;
+  const body=$('#up-body'); body.innerHTML='<div class="status"><span class="spin"></span>PDF തുറക്കുന്നു…</div>';
+  let doc; try{ doc=await openPdf(f); }catch(e){ body.innerHTML='<p class="note">ഈ PDF തുറക്കാൻ പറ്റിയില്ല.</p>'; return; }
+  body.innerHTML=`<p class="note">"ബോർഡിൽ തുറക്കുക" പുതിയ പേജിൽ ആ PDF പേജ് കാണിക്കും. "✂ ചിത്രം മുറിക്കുക" ഉപയോഗിച്ച് പേജിലെ ഏത് ചിത്രവും ബോർഡിലേക്ക് മാറ്റാം.</p>`;
+  for(let n=1; n<=doc.numPages && upEl; n++){
+    const d=document.createElement('div'); d.className='para';
+    d.innerHTML=`<p class="note"><b>പേജ് ${n}</b></p><div class="thumb"></div><div class="acts"><button type="button" data-a="open">ബോർഡിൽ തുറക്കുക</button><button type="button" data-a="crop">✂ ചിത്രം മുറിക്കുക</button></div>`;
+    d.querySelector('[data-a=open]').onclick=async()=>{ toast('പേജ് തയ്യാറാക്കുന്നു…'); const c=await renderPdfPage(doc,n,1600); $('#addpg').click(); await placeUpload(await canvasBlob(c), `${f.name} · ${n}`, true); closeUploads(); };
+    d.querySelector('[data-a=crop]').onclick=()=>cropPdfPage(doc,n,f.name);
+    body.appendChild(d);
+    renderPdfPage(doc,n,420).then(c=>{ c.style.cssText='width:100%;height:auto;border-radius:8px;border:1px solid var(--line);background:#fff'; d.querySelector('.thumb').appendChild(c); }).catch(()=>{});
+    if(n>=60){ body.insertAdjacentHTML('beforeend','<p class="note">ആദ്യത്തെ 60 പേജുകൾ മാത്രം കാണിക്കുന്നു.</p>'); break; }
+  }
+}
+// cut any part of a PDF page (usually a picture) and put it on the board
+async function cropPdfPage(doc, n, name){
+  const ov=document.createElement('div'); ov.className='cropov';
+  ov.innerHTML=`<div class="cropbar"><span>ചിത്രത്തിന് ചുറ്റും വിരൽ കൊണ്ട് ഒരു ചതുരം വരയ്ക്കൂ</span><button type="button" class="btn" data-a="ok" disabled>ബോർഡിലേക്ക്</button><button type="button" class="btn ghost" data-a="x">റദ്ദാക്കുക</button></div><div class="cropwrap"><div class="status"><span class="spin"></span>പേജ് തയ്യാറാക്കുന്നു…</div></div>`;
+  document.body.appendChild(ov); ov.querySelector('[data-a=x]').onclick=()=>ov.remove();
+  const big=await renderPdfPage(doc,n,2000); const wrap=ov.querySelector('.cropwrap'); wrap.innerHTML='';
+  const view=document.createElement('canvas'); wrap.appendChild(view);
+  const fit=Math.min((wrap.clientWidth-16)/big.width, (wrap.clientHeight-16)/big.height); view.width=Math.round(big.width*fit); view.height=Math.round(big.height*fit);
+  const g=view.getContext('2d'); let r=null, start=null;
+  const paint=()=>{ g.drawImage(big,0,0,view.width,view.height); if(r){ g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(0,0,view.width,view.height); g.drawImage(big, r.x/fit, r.y/fit, r.w/fit, r.h/fit, r.x, r.y, r.w, r.h); g.strokeStyle='#ffd84d'; g.lineWidth=3; g.setLineDash([8,6]); g.strokeRect(r.x,r.y,r.w,r.h); g.setLineDash([]); } };
+  paint(); view.style.touchAction='none';
+  const pt=e=>{ const b=view.getBoundingClientRect(); return [Math.max(0,Math.min(view.width,e.clientX-b.left)), Math.max(0,Math.min(view.height,e.clientY-b.top))]; };
+  view.onpointerdown=e=>{ view.setPointerCapture(e.pointerId); start=pt(e); r=null; paint(); };
+  view.onpointermove=e=>{ if(!start) return; const p=pt(e); r={x:Math.min(start[0],p[0]), y:Math.min(start[1],p[1]), w:Math.abs(p[0]-start[0]), h:Math.abs(p[1]-start[1])}; paint(); };
+  view.onpointerup=()=>{ start=null; ov.querySelector('[data-a=ok]').disabled = !(r && r.w>12 && r.h>12); };
+  ov.querySelector('[data-a=ok]').onclick=async()=>{ if(!r) return; const c=document.createElement('canvas'); c.width=Math.round(r.w/fit); c.height=Math.round(r.h/fit);
+    c.getContext('2d').drawImage(big, r.x/fit, r.y/fit, c.width, c.height, 0, 0, c.width, c.height); ov.remove(); closeUploads();
+    await placeUpload(await canvasBlob(c,'image/png'), name, false); };
+}
+$('#uploads').onclick = openUploads;
 $('#settings').onclick = e => { e.stopPropagation(); if(menuEl){ closeMenus(); return; } openSettings(); };
 
 setTool('pen'); updateTop();
